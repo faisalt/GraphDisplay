@@ -1,0 +1,151 @@
+<html>
+	<head>
+	
+		<title>Graph Display - Annotation Study</title>
+		
+		<link rel="stylesheet" type="text/css" href="common.css">
+		<style type="text/css">
+			
+		</style>
+		
+		<script type="text/javascript" src="js/jquery-1.8.2.js"></script>
+		<script type="text/javascript" src="js/jquery-ui-1.9.1.custom.min.js"></script>
+		<script type="text/javascript" src="js/jquery.nearest.min.js"></script>
+		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>
+		<script type="text/javascript" src="js/ubidisplays-multitouch-0.8.js"></script>
+		<script type="text/javascript" src="graph.js" type="text/javascript"></script>
+		<script type="text/javascript" src="datasets.js"></script>
+		
+	</head>
+	<body>
+		
+		<!-- STUDY BUTTONS -->
+		<div id="studyheader">
+			<p>Annotation Study</p>
+			<ul id="modes">
+				<li mode="M1"><span>M1</span><span>Virtual Crosshair Selection<span></li>
+				<li mode="M2"><span>M2</span><span>Physical Pull Selection<span></li>
+				<li mode="M3"><span>M3</span><span>Physical Tap Selection<span></li>
+			</ul>
+		</div>
+		
+		<!-- FUNCTION RENDER -->
+		<div id="datainfo">
+			<span class="title"></span>
+			<br/>
+			<br/>
+			<span class="row"></span>
+			<span class="col"></span>
+			<br/>
+			<span class="value"></span>
+		</div>
+		
+		<script>
+			// Constants
+			var STUDY = 8383;					// Port for connection to the study behaviour.
+			var USE_DATASET_COLOURS = true;		// Do we use the colours from the data set when plotting infovis data.
+			var touch = null;					// Touch detector.
+			var dims = null;					// Physical dimensions.
+			
+			function setTouchedValue(row, col, value) {
+				console.log("settouchedvalue");
+				// If no row, wipe.
+				if (row === undefined)
+				{
+					$("#datainfo span.value").text("");
+					return;
+				}
+				
+				// Set the row and column labels.
+				$("#datainfo span.row").text(getYAxisLabel(row));
+				$("#datainfo span.col").text(getXAxisLabel(col));
+				
+				// Set the value.
+				var adjustedValue = adjustZRange(value);
+				$("#datainfo span.value").text(rf(adjustedValue, 2));
+				
+				// Set the axis highlighters.
+				selectAxisLabels(row, col);
+				
+				// If not mode 1, play select sound.
+				if (mode != "M1")
+				{
+					playSound("snd/buttons/on_click/retro_click.wav")
+				}
+			}
+			
+			/** Reset the study mode. */
+			function setMode(mode){
+				console.log("here");
+				// Reset behaviour.
+				send("reset");
+				setTouchedValue();
+				
+				graphDataSet("Electricity");
+			}
+			
+			/** Do cross-hair touch selection in mode 1 */
+			function m1_virtualSelect(event) {
+				console.log("virtualselect");
+				// Select the first touch in each border quadrant.
+				var touches = event.originalEvent.touches;
+				
+				// For each touch.
+				for (var i in touches)
+				{
+					// For each touch work out which element is the closest.
+					var x = touches[i].pageX;
+					var y = touches[i].pageY;
+					
+					// Drop the touch if its out of bounds.
+					if ((y / window.innerHeight) * 100 < GBOUNDY) continue;
+					if ((x / window.innerWidth) * 100 > GBOUNDMAX-GBOUNDY) continue;
+					
+					// Pick the closest element.
+					var list = $.nearest( {x : x, y : y }, ".axislabel");
+					var selected = $(list.get(0));
+					
+					// Select axes.
+					if (selected.data("axis") == "x")
+						send("x_label_touch", { x : selected.data("idx") });
+					
+					else if (selected.data("axis") == "y")
+						send("y_label_touch", { y : selected.data("idx") });
+					
+					// Awesome.
+					playSound("snd/whooshes/short_whoosh6.wav");
+				}
+			}
+			
+			
+			// Listen to all touch events on the top of the graph.
+			$(document).bind("touchmove", function(event){
+				console.log("touchmove");
+				// If in mode 1, use touch selection.
+				if (mode == "M1")
+					m1_virtualSelect(event);
+			});
+			
+			
+			/** Start up the study. */
+			$(document).ready(function() {
+				
+				// Start the touch events.
+				initTouch();
+				
+				// Connect to the graph.
+				initComms(STUDY, function(){ console.log("Connected to Graph Behaviour"); initModes("M1"); });
+				
+				// Graph dimensions.
+				dims = dimensions();
+				
+				// Add axes.
+				drawAxes();
+				
+			});
+			
+			
+		</script>
+		
+	</body>
+</html>

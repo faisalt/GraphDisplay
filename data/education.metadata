@@ -1,0 +1,34 @@
+<dataInfo>
+   <title>Education aid (% of total aid)</title>
+   <axisLabeling>
+      <minAxisValue>0.0</minAxisValue>
+      <maxAxisValue>50.0</maxAxisValue>
+      <ticks>
+         <tick value="0.0" label="0 %"/>
+         <tick value="5.0" label="5 %"/>
+         <tick value="10.0" label="10 %"/>
+         <tick value="15.0" label="15 %"/>
+         <tick value="20.0" label="20 %"/>
+         <tick value="25.0" label="25 %"/>
+         <tick value="30.0" label="30 %"/>
+         <tick value="35.0" label="35 %"/>
+         <tick value="40.0" label="40 %"/>
+         <tick value="45.0" label="45 %"/>
+         <tick value="50.0" label="50 %"/>
+      </ticks>
+   </axisLabeling>
+   <colorCoding class="fr.inria.aviz.physVisEval.data.RowColorCoding">
+      <palette>
+         <color r="51" g="160" b="44" a="255"/>
+         <color r="178" g="223" b="138" a="255"/>
+         <color r="31" g="120" b="180" a="255"/>
+         <color r="166" g="206" b="227" a="255"/>
+         <color r="106" g="61" b="154" a="255"/>
+         <color r="202" g="178" b="214" a="255"/>
+         <color r="227" g="26" b="28" a="255"/>
+         <color r="251" g="154" b="153" a="255"/>
+         <color r="255" g="127" b="0" a="255"/>
+         <color r="253" g="191" b="111" a="255"/>
+      </palette>
+   </colorCoding>
+</dataInfo>

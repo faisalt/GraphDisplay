@@ -1,0 +1,275 @@
+<html>
+	<head>
+	
+		<title>Graph Display - Organisation Study</title>
+		
+		<!-- Styles --> 
+		<link rel="stylesheet" type="text/css" href="common.css">
+		<style type="text/css">
+			
+			#datainfo { display: none; }
+			
+			.axislabel.y.target div.text { background-color: purple; } 
+			.axislabel.y.target div.bar { background-color: purple; } 
+			
+		</style>
+		
+		<script type="text/javascript" src="js/jquery-1.8.2.js"></script>
+		<script type="text/javascript" src="js/jquery-ui-1.9.1.custom.min.js"></script>
+		<script type="text/javascript" src="js/jquery.nearest.min.js"></script>
+		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>
+		<script type="text/javascript" src="js/ubidisplays-multitouch-0.8.js"></script>
+		<script type="text/javascript" src="graph.js" type="text/javascript"></script>
+		<script type="text/javascript" src="datasets.js"></script>
+		
+	</head>
+	<body>
+		
+		<!-- STUDY BUTTONS -->
+		<div id="studyheader">
+			<p>Organisation Study</p>
+			<ul id="modes">
+				<li mode="V1"><span>V1</span><span>Virtual Drag Instant<span></li>
+				<li mode="V2"><span>V2</span><span>Virtual Drag Hide<span></li>
+				<!--<li mode="V3"><span>V3</span><span>Virtual Drag Follow<span></li>-->
+				
+				<li mode="P1"><span>P1</span><span>Physical Tap Instant<span></li>
+				<li mode="P2"><span>P2</span><span>Physical Tap Hide<span></li>
+				<!--<li mode="P3"><span>P3</span><span>Physical Tap Follow<span></li>-->
+			</ul>
+		</div>
+		
+		<!-- FUNCTION RENDER -->
+		<div id="datainfo">
+			<span class="title"></span>
+			<br/>
+			<br/>
+			<span class="row"></span>
+			<span class="col"></span>
+			<br/>
+			<span class="value"></span>
+		</div>
+		
+		<script>
+			// Constants
+			var STUDY = 8383;					// Port for connection to the study behaviour.
+			var USE_DATASET_COLOURS = true;		// Do we use the colours from the data set when plotting infovis data.
+			var dims = null;					// Physical dimensions.
+			
+			var p1Swapping = false;		// Is mode P1 swapping?
+			var p2Swapping = false;		// Is mode P1 swapping?
+			
+			/** Responses to auto-touch (i.e. interaction with physical bars). */
+			function handleAutoTouch(touched, pushed, pulled) {
+				
+				//console.log("touched: " + touched.length);
+				//console.log("pushed : " + pushed.length);
+				//console.log("pulled : " + pulled.length);
+				
+				// Swap if two rows are pressed.
+				if (touched.length == 2 && mode == "P1" && p1Swapping == false)
+				{
+					instantRowSwap(touched[0].row, touched[1].row);
+					p1Swapping = true;
+					after(ANIM, function() { p1Swapping = false; });
+				}
+				
+				// Swap if two rows are pressed.
+				if (touched.length == 2 && mode == "P2" && p2Swapping == false)
+				{
+					hideRowSwap(touched[0].row, touched[1].row);
+					p2Swapping = true;
+					after(ANIM*3, function() { p2Swapping = false; });
+				}
+				
+			}
+			
+			/** Responses to physical touches from annotation mode. */
+			function setTouchedValue(row, col, value) {
+				
+				// If no row, wipe.
+				if (row === undefined)
+				{
+					$("#datainfo span.value").text("");
+					return;
+				}
+				
+				// Set the row and column labels.
+				$("#datainfo span.row").text(getYAxisLabel(row));
+				$("#datainfo span.col").text(getXAxisLabel(col));
+				
+				// Set the value.
+				var adjustedValue = adjustZRange(value);
+				$("#datainfo span.value").text(rf(adjustedValue, 2));
+				
+				// Set the axis highlighters.
+				selectAxisLabels(row, col);
+				
+				// Play sound.
+				playSound("snd/buttons/on_click/retro_click.wav")
+				
+			}
+			
+			/** Reset the study mode. */
+			function setMode(mode){
+				
+				// Reset behaviour.
+				send("reset");
+				setTouchedValue();
+				
+				// If we need auto-touch enabled.
+				if (mode.startsWith("P"))
+					setAutoTouch(true);
+				else
+					setAutoTouch(false);
+				
+				// Reset the data set.
+				graphDataSet("hiv");
+			}
+			
+			
+			/** Swap rows using an instant animation. */
+			function instantRowSwap(r1, r2) {
+				swapRow(r1, r2);
+			}
+			
+			/** Swap rows using a hide animation. */
+			function hideRowSwap(r1, r2) {
+			
+				// Bail if nothing to do.
+				if (r1 == r2) return;
+				
+				// Copy the start data set.
+				var orig = deepCopy(_LastDataSet);
+				var next = swap(orig, r1, r2);
+				
+				// Kill all but the rows to swap.
+				var data = identity();
+				data[r1] = _LastDataSet[r1];
+				data[r2] = _LastDataSet[r2];
+				blitData(data);
+				
+				// Swap 
+				after(ANIM, function(){		swapRow(r1, r2); 	});
+				after(ANIM*2, function(){	blitData(next); 	});
+			}
+			
+			
+			/** Swap rows by dragging instantly. Called more often than the others. */
+			function dragRowSwap(r1, r2) {
+				
+				// If these two are currently swapping, bail.
+				if (_lastR1 == r1 && _lastR2 == r2) return;
+				
+				swapRow(r1, r2);
+				_lastR1 = r1;
+				_lastR2 = r2;
+				
+				if (_pDragTimer)
+					clearTimeout(_pDragTimer);
+				
+				_pDragTimer = setTimeout(function(){ _lastR1 = -1; _lastR2 = -1; }, 3000);
+			}
+			var _pDragTimer = null;
+			var _lastR1 = -1;
+			var _lastR2 = -1;
+			
+			
+			var dragging = null;	// Virtual drag row.
+			var dropped = null;		// Virtual drop row.
+			
+			// Listen to all touch events on the top of the graph.
+			$(document).bind("touchmove", function(event){
+			
+				// If we are in virtual mode.
+				if (mode.startsWith("V"))
+				{
+					// Select the first touch in each border quadrant.
+					var touches = event.originalEvent.touches;
+					
+					if (touches.length == 1)
+					{
+						// For each touch work out which element is the closest.
+						var x = touches[0].pageX;
+						var y = touches[0].pageY;
+						
+						// Drop the touch if its out of bounds.
+						if ((y / window.innerHeight) * 100 < GBOUNDY) return;
+						if ((x / window.innerWidth) * 100 > GBOUNDMAX-GBOUNDY) return;
+						
+						// Get the nearest row.
+						var list = $.nearest( {x : x, y : y }, ".axislabel.y");
+						var selected = $(list.get(0));
+						
+						// Remove target selection visuals.
+						$(".axislabel").removeClass("target");
+						
+						// Select dragger.
+						if (dragging == null)
+						{
+							dragging = selected;
+							$("#axislabel_y_" + dragging.data("idx")).addClass("selected");
+						}
+						else
+						{
+							dropped = selected;
+							$("#axislabel_y_" + dropped.data("idx")).addClass("target");
+							
+							// If we are in instant mode, do the instant swap.
+							if (mode == "V3")
+							{
+								var a = dragging.data("idx");
+								var b = dropped.data("idx");
+								dragRowSwap(a, b);
+							}
+						}
+						
+						// Awesome.
+						playSound("snd/whooshes/short_whoosh6.wav");
+					}
+				}
+			});
+			
+			$(document).bind("touchend", function(event){
+			
+				// If we are in virtual mode.
+				if (mode.startsWith("V"))
+				{
+					if (dragging != null && dropped != null)
+					{
+						// Work out which rows to swap.
+						var a = dragging.data("idx");
+						var b = dropped.data("idx");
+						$(".axislabel").removeClass("selected");
+						
+						// Do the swap with the right animation based on the mode.
+						if (mode == "V1") 		instantRowSwap(a, b);
+						else if (mode == "V2") 	hideRowSwap(a, b);
+					}
+					dragging = null;
+					dropped = null;
+				}
+			});
+			
+			
+			/** Start up the study. */
+			$(document).ready(function() {
+				
+				// Start the touch events.
+				initTouch();
+				
+				// Connect to the graph.
+				initComms(STUDY, function(){ console.log("Connected to Graph Behaviour"); initModes("V1"); });
+				
+				// Graph dimensions.
+				dims = dimensions();
+				
+				// Add axes.
+				drawAxes();
+			});
+			
+			
+		</script>
+		
+	</body>
+</html>

@@ -1,0 +1,33 @@
+<dataInfo>
+   <title>Military expenditure (% of GDP)</title>
+   <axisLabeling>
+      <minAxisValue>0.0</minAxisValue>
+      <maxAxisValue>18.0</maxAxisValue>
+      <ticks>
+         <tick value="0.0" label="0 %"/>
+         <tick value="2.0" label="2 %"/>
+         <tick value="4.0" label="4 %"/>
+         <tick value="6.0" label="6 %"/>
+         <tick value="8.0" label="8 %"/>
+         <tick value="10.0" label="10 %"/>
+         <tick value="12.0" label="12 %"/>
+         <tick value="14.0" label="14 %"/>
+         <tick value="16.0" label="16 %"/>
+         <tick value="18.0" label="18 %"/>
+      </ticks>
+   </axisLabeling>
+   <colorCoding class="fr.inria.aviz.physVisEval.data.RowColorCoding">
+      <palette>
+         <color r="51" g="160" b="44" a="255"/>
+         <color r="178" g="223" b="138" a="255"/>
+         <color r="31" g="120" b="180" a="255"/>
+         <color r="166" g="206" b="227" a="255"/>
+         <color r="106" g="61" b="154" a="255"/>
+         <color r="202" g="178" b="214" a="255"/>
+         <color r="227" g="26" b="28" a="255"/>
+         <color r="251" g="154" b="153" a="255"/>
+         <color r="255" g="127" b="0" a="255"/>
+         <color r="253" g="191" b="111" a="255"/>
+      </palette>
+   </colorCoding>
+</dataInfo>

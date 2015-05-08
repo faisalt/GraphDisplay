@@ -1,0 +1,31 @@
+body {
+	background-color:black;
+	color:white;
+	font-family: segoe ui;
+}
+
+.title {
+	font-size:1.5em;
+	padding:10px;
+}
+
+#datainfo {
+	margin-bottom:20px;
+}
+
+.axis_label {
+	padding:20px;
+	display:block;
+	width:80%;
+	border:1px solid lightgray;
+	margin-bottom:5px;
+	float:right;
+	text-align:right;
+	font-size:1.5em;
+}
+
+.control.axislabel.y {
+	position:relative;
+	width:100%;
+	float:right;
+}
