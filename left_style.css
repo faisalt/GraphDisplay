@@ -15,7 +15,7 @@ body {
 
 .axis_label {
 	padding:20px;
-	display:block;
+	display:inline-block;
 	width:80%;
 	border:1px solid lightgray;
 	margin-bottom:5px;
@@ -42,6 +42,12 @@ body {
 	position:relative;
 	width:100%;
 	float:right;
+}
+
+.drag-active {
+	z-index:10;
+	position:relative;
+	display:inline-block;
 }
 
 .dropzone {

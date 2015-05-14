@@ -157,7 +157,6 @@ function blitRowColours(rows) {
 }
 
 function send(action, data) {
-	if(action == "dataset") {console.log(data);	}
 	if (!commsReady)
 		return;
 	comms.send(JSON.stringify({ action : action, data : data }));
@@ -179,13 +178,13 @@ function addDragHandlers() {
 		// call this function on every dragend event
 		onend: function (event) {
 		  var textEl = event.target.querySelector('p');
+		  $(event.target).removeAttr('style');
 		  textEl && (textEl.textContent =
 			'moved a distance of ' + (Math.sqrt(event.dx * event.dx + event.dy * event.dy)|0) + 'px');
 		}
 	});
 	interact('.dropzone').dropzone({
 		accept: '.draggable',
-		
 		ondropactivate: function (event) {
 			//add feedback (highlighting) to the target being moved
 			event.relatedTarget.classList.add('drag-active');
@@ -199,8 +198,9 @@ function addDragHandlers() {
 			$(event.target).parent().find('.draggable').get(0).classList.remove('drop-target');
 		},
 		ondrop: function (event) {
-			
-			if($(event.target).parent().find('.drop-target').length > 0 &&  $(event.relatedTarget).parent().find('.drag-active').length > 0){
+			if($(event.relatedTarget).hasClass('drag-active') &&  
+				$(event.target).parent().find('.draggable').hasClass('drop-target') &&
+				!$(event.target).parent().find('.draggable').hasClass('drag-active')){
 				ENABLESWAP = true;
 				console.log("swapping enabled");
 			} else { ENABLESWAP = false; }
@@ -242,16 +242,8 @@ function addDragHandlers() {
 	});
 }
 
-function swapElements(a, b) {
-}
-
-function addTouchHandlers() {
-	//
-}
-
 /** Tell the system to swap a row. */
 function swapRow(r1, r2) {
-	
 	// Bail if nothing to do.
 	if (r1 == r2) return;
 	
@@ -263,7 +255,6 @@ function swapRow(r1, r2) {
 	// Blit data to graph.
 	blitData(_LastDataSet);
 	blitRowColours(_LastColourSet);
-
 }
 
 /** Swap two elements of an array and return the array. */
