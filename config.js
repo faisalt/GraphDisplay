@@ -12,4 +12,5 @@ var X_LIMIT=10;
 
 //URL to datasets
 var DS_URL = "http://localhost/GraphDisplay/data/";
+//var DS_URL = "http://148.88.227.239/GraphDisplay/data/";
 

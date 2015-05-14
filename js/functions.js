@@ -24,6 +24,7 @@ var ENABLESWAP		= false;
 //var BAR_SPACE_M 	= 0.0085;
 
 var GRAPH_SERVER 	= "localhost";
+//var GRAPH_SERVER 	= "148.88.227.239";
 
 /** Start up the comms with the graph using a reconnecting websocket. */
 function initComms(study_port, onOpen) {

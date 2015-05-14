@@ -25,6 +25,9 @@ body {
 	background-color:#FFFFC8;
 	z-index:2;
 	color:black;
+	/*Change below for display size and resolution*/
+	/*height:60px;
+	margin-bottom:25px;*/
 }
 
 .axis_label.drag-active {
