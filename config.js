@@ -14,3 +14,6 @@ var X_LIMIT=10;
 var DS_URL = "http://localhost/GraphDisplay/data/";
 //var DS_URL = "http://148.88.227.239/GraphDisplay/data/";
 
+//Dataset to use
+var FORCE_DS = "Electricity";
+

@@ -4,7 +4,7 @@
 */
 
 /** @brief: handler for when the user drags a row to reorganize them **/
-function addDragHandlers() {
+function addLowerDragHandlers() {
 	interact('.draggable')
 	  .draggable({
 		// enable inertial throwing
@@ -13,7 +13,7 @@ function addDragHandlers() {
 		restrict: {
 		  restriction: "parent",
 		  endOnly: true,
-		  //elementRect: { top: 0, left: 0.001, bottom: 2, right: 1  }
+		  elementRect: { top: 0, left: 0, bottom: 0, right: 0 }
 		},
 		// call this function on every dragmove event
 		onmove: dragMoveListener,
@@ -27,7 +27,7 @@ function addDragHandlers() {
 			'moved a distance of ' + (Math.sqrt(event.dx * event.dx + event.dy * event.dy)|0) + 'px');
 		}
 	});
-	interact('.dropzone').dropzone({
+	interact('.dropzone_y').dropzone({
 		accept: '.draggable',
 		ondropactivate: function (event) {
 			//add feedback (highlighting) to the target being moved

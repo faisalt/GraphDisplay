@@ -20,6 +20,13 @@ var GBOUNDW			= GBOUNDMAX - (GBOUNDX*2);
 var GBOUNDH			= GBOUNDMAX - (GBOUNDY*2);
 
 var ENABLESWAP		= false;
+
+/* Possible locks to handle simultaneous row dragging/scrolling navigation 
+ * - or find a way to do both at the same time - then probably put the panel handlers in here rather than separate
+*/
+var DRAGLOCK		= false;
+var NAVIGATIONLOCK	= false;
+
 var GRAPH_SERVER 	= "localhost";
 //var GRAPH_SERVER 	= "148.88.227.239";
 
@@ -40,13 +47,13 @@ function initComms(study_port, onOpen) {
 	};
 }
 /** Add axis to the left panel of the graph. */
-function drawAxis() {
+function drawLeftAxis() {
 	// Reference element the axis go into.
 	var root = $("body").find("#leftaxis");
 	// Y Axis - or axis on the left hand side of the graph
 	for (var i = 0; i < Y_LIMIT; ++i) {
 		$("<div>").appendTo(root)
-			.append($("<div>").addClass("text axis_label draggable drag-drop").text("v"))
+			.append($("<div>").addClass("text axis_label_left draggable drag-drop").text("v"))
 			.append($("<div>").addClass("bar"))
 			.addClass("control axislabel y")
 			.attr("id", "axislabel_y_" + i)
@@ -56,6 +63,23 @@ function drawAxis() {
 	// Stick some initial labels on them.
 	for (var i = 0; i < 10; ++i){ setYAxisLabel(i, i + 1); }
 }
+
+function drawLowerAxis() {
+	// Reference element the axis go into.
+	var root = $("body").find("#loweraxis");
+	// X Axis - or axis on the lower end of the graph
+	for (var i = 0; i < 10; ++i) {
+		$("<div>").appendTo(root)
+		.append($("<div>").addClass("text axis_label_lower draggable drag-drop"))
+		.append($("<div>").addClass("bar"))
+		.addClass("control axislabel x")
+		.attr("id", "axislabel_x_" + i)
+		.data("axis", "x").data("idx", i)
+		.append($("<div>").addClass("dropzone_y"))
+	}
+}
+
+function setXAxisLabel(i, value) { $("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">').text(value)); }
 
 function setYAxisLabel(i, value) { $("#axislabel_y_" + i).find("div.text").text(value); }
 
@@ -77,12 +101,19 @@ function graphDataSet(sDataSet, name) {
 		var lines = csv.split(/\r|\r?\n/g);
 		for (var line in lines)
 			lines[line] = lines[line].split(",");
-		// Save row labels.
+		// Save row labels - left panel
 		_LastRowLabels = [0,0,0,0,0,0,0,0,0,0];
 		for (var row = 1; row < 11; ++row) {
 			setYAxisLabel(9 - (row - 1),  lines[row][0]);
 			_LastRowLabels[9 - (row - 1)] = lines[row][0];
 		}
+		// Save column labels - bottom panel
+		_LastColLabels = [0,0,0,0,0,0,0,0,0,0];
+		for (var col = 1; col < 11; ++col) {
+			setXAxisLabel(col - 1,  lines[0][col]);
+			_LastColLabels[col - 1] = lines[0][col];
+		}
+		
 		// Read data in and store in 2D array i.e. data
 		var data = [];
 		for (var row = 1; row < 11; ++row) {
@@ -152,86 +183,6 @@ function send(action, data) {
 	comms.send(JSON.stringify({ action : action, data : data }));
 }
 
-function addDragHandlers() {
-	interact('.draggable')
-	  .draggable({
-		// enable inertial throwing
-		inertia: false,
-		// keep the element within the area of it's parent
-		restrict: {
-		  restriction: "parent",
-		  endOnly: true,
-		  elementRect: { top: 0, left: 0.001, bottom: 2, right: 1  }
-		},
-		// call this function on every dragmove event
-		onmove: dragMoveListener,
-		// call this function on every dragend event
-		onend: function (event) {
-		  var textEl = event.target.querySelector('p');
-		  $(event.target).removeAttr('style');
-		  textEl && (textEl.textContent =
-			'moved a distance of ' + (Math.sqrt(event.dx * event.dx + event.dy * event.dy)|0) + 'px');
-		}
-	});
-	interact('.dropzone').dropzone({
-		accept: '.draggable',
-		ondropactivate: function (event) {
-			//add feedback (highlighting) to the target being moved
-			event.relatedTarget.classList.add('drag-active');
-		},
-		ondragenter: function (event) {
-			//add feedback (highlighting) to the target being moved to
-			$(event.target).parent().find('.draggable').get(0).classList.add('drop-target');
-		},
-		ondragleave: function (event) {
-			//remove feedback (highlighting) from the target being moved to
-			$(event.target).parent().find('.draggable').get(0).classList.remove('drop-target');
-		},
-		ondrop: function (event) {
-			//when the user drops a target - if on top of another target, and drop-target is activated, enable swapping
-			if($(event.relatedTarget).hasClass('drag-active') &&  
-				$(event.target).parent().find('.draggable').hasClass('drop-target') &&
-				!$(event.target).parent().find('.draggable').hasClass('drag-active')){
-				ENABLESWAP = true;
-			} else { ENABLESWAP = false; }
-			
-			//remove feedback (highlighting) from the target being moved to and also the target
-			var a = $('div.drag-active').get(0);
-			var b = $('div.drop-target').get(0);
-			$a_parent = $('div.drag-active').parent();
-			$b_parent = $('div.drop-target').parent();
-			
-			if(ENABLESWAP == true) {
-				$('div.drag-active').remove();
-				$('div.drop-target').remove();
-				
-				$a_parent.prepend(b);
-				$b_parent.prepend(a);
-				$b_elem = $b_parent.find('.draggable');
-				$a_elem = $a_parent.find('.draggable');
-				
-				$a_elem.css({'transform':'','-webkit-transform':''});
-				$b_elem.css({'transform':'','-webkit-transform':''});
-				
-				//indicate that the swapping has occurred and on which rows
-				$a_elem.animate( { backgroundColor:'white'}, 500).animate( { backgroundColor:'#FFFFC8'}, 500, function() { $(this).removeAttr('style');});
-				$b_elem.animate( { backgroundColor:'white'}, 500).animate( { backgroundColor:'#FFFFC8'}, 500, function() { $(this).removeAttr('style');});
-				
-				var r1 = $a_parent.data('idx');
-				var r2 = $b_parent.data('idx');
-				
-				swapRow(r1, r2);
-			}
-			//event.relatedTarget.classList.remove('drag-active');
-			$a_parent.find('.draggable').get(0).classList.remove('drop-target');
-			
-		},
-		ondropdeactivate: function (event) {
-			event.relatedTarget.classList.remove('drag-active');
-			event.target.classList.remove('drag-active');
-		}
-	});
-}
 
 /*
 * @brief: tell the system to swap rows and inform the graph
@@ -251,19 +202,3 @@ function swapRow(r1, r2) {
 
 /** Swap two elements of an array and return the array. */
 function swap(arr, a, b) { var tmp = arr[a]; arr[a] = arr[b]; arr[b] = tmp; return arr; }
-
-/*
-* @brief: handler for dragging the rows
-*/
-function dragMoveListener (event) {
-    var target = event.target,
-        // keep the dragged position in the data-x/data-y attributes
-        x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx,
-        y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-    // translate the element
-    target.style.webkitTransform =
-    target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
-    // update the posiion attributes
-    target.setAttribute('data-x', x);
-    target.setAttribute('data-y', y);
- }
