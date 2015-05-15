@@ -9,8 +9,34 @@ body {
 	padding:10px;
 }
 
+div#leftaxis {
+	width:80%;
+	float:right;
+}
+
+div#leftfunctions {
+	width:19%;
+	float:right;
+	height:100%;
+}
+
+input#refresh {
+	margin-left: 10px;
+	height: 55px;
+	width: 55px;
+	position: relative;
+	top: 1px;
+	border: 1px solid lightgray;
+	padding: 20px;
+}
+
 #datainfo {
 	margin-bottom:20px;
+	text-align:center;
+}
+
+span.title {
+	font-weight: bold;
 }
 
 .axis_label {

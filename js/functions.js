@@ -1,10 +1,11 @@
 /* 
- * graph.js
+ * functions.js
  * API for the Physical Graph.
- * Created: 17th Sept 2014
+ * Modified for the touch panels functionality.
+ * Created: 17th Sept 2014. Edited: 12th May 2015.
+ * TO DO items are marked in comments with _CHECK so just ctrl-F
  * 
  */
-
 var comms 				= null;
 var commsReady 			= false;
 var touch 				= null;
@@ -19,10 +20,6 @@ var GBOUNDW			= GBOUNDMAX - (GBOUNDX*2);
 var GBOUNDH			= GBOUNDMAX - (GBOUNDY*2);
 
 var ENABLESWAP		= false;
-
-//var BAR_SiZE_M		= 0.011;
-//var BAR_SPACE_M 	= 0.0085;
-
 var GRAPH_SERVER 	= "localhost";
 //var GRAPH_SERVER 	= "148.88.227.239";
 
@@ -42,12 +39,10 @@ function initComms(study_port, onOpen) {
 		console.log(kMessage);
 	};
 }
-
-/** Add axis to the graph. */
+/** Add axis to the left panel of the graph. */
 function drawAxis() {
 	// Reference element the axis go into.
-	var root = $("body");
-	
+	var root = $("body").find("#leftaxis");
 	// Y Axis - or axis on the left hand side of the graph
 	for (var i = 0; i < Y_LIMIT; ++i) {
 		$("<div>").appendTo(root)
@@ -59,9 +54,7 @@ function drawAxis() {
 			.append($("<div>").addClass("dropzone"))
 	}
 	// Stick some initial labels on them.
-	for (var i = 0; i < 10; ++i){
-		setYAxisLabel(i, i + 1);
-	}
+	for (var i = 0; i < 10; ++i){ setYAxisLabel(i, i + 1); }
 }
 
 function setYAxisLabel(i, value) { $("#axislabel_y_" + i).find("div.text").text(value); }
@@ -74,7 +67,6 @@ function setYAxisLabel(i, value) { $("#axislabel_y_" + i).find("div.text").text(
 function graphDataSet(sDataSet, name) {	
 	// Guess at the name.
 	name = name || sDataSet;
-	
 	// Fade out the function name.
 	$("#datainfo").fadeOut();
 	$("#datainfo").find("span.title").text("loading '"+sDataSet+"'");
@@ -100,8 +92,7 @@ function graphDataSet(sDataSet, name) {
 				data_row.push( lines[row][col] );
 			}
 		}
-		data.reverse();
-		
+		data.reverse(); //_CHECK
 		// Dispatch to the graph.
 		blitData(data);
 		blitRowColours();
@@ -121,7 +112,7 @@ function graphDataSet(sDataSet, name) {
 				$(xml).find("color").each(function(i, el){
 					rows.push({ r : $(this).attr("r"), g : $(this).attr("g"), b : $(this).attr("b") });
 				});
-				rows.reverse();
+				rows.reverse(); //_CHECK
 				// Send row colours too.
 				if (USE_DATASET_COLOURS) {
 					blitRowColours(rows);
@@ -129,7 +120,6 @@ function graphDataSet(sDataSet, name) {
 			}			
 		});
 	}
-	
 	// Load the data set from a file.
 	$.ajax({
 		url: DS_URL + sDataSet + ".csv",
@@ -198,11 +188,11 @@ function addDragHandlers() {
 			$(event.target).parent().find('.draggable').get(0).classList.remove('drop-target');
 		},
 		ondrop: function (event) {
+			//when the user drops a target - if on top of another target, and drop-target is activated, enable swapping
 			if($(event.relatedTarget).hasClass('drag-active') &&  
 				$(event.target).parent().find('.draggable').hasClass('drop-target') &&
 				!$(event.target).parent().find('.draggable').hasClass('drag-active')){
 				ENABLESWAP = true;
-				console.log("swapping enabled");
 			} else { ENABLESWAP = false; }
 			
 			//remove feedback (highlighting) from the target being moved to and also the target
@@ -223,8 +213,9 @@ function addDragHandlers() {
 				$a_elem.css({'transform':'','-webkit-transform':''});
 				$b_elem.css({'transform':'','-webkit-transform':''});
 				
-				$a_elem.animate( { backgroundColor:'white'}, 1000).animate( { backgroundColor:'#FFFFC8'}, 1000, function() { $(this).removeAttr('style');});
-				$b_elem.animate( { backgroundColor:'white'}, 1000).animate( { backgroundColor:'#FFFFC8'}, 1000, function() { $(this).removeAttr('style');});
+				//indicate that the swapping has occurred and on which rows
+				$a_elem.animate( { backgroundColor:'white'}, 500).animate( { backgroundColor:'#FFFFC8'}, 500, function() { $(this).removeAttr('style');});
+				$b_elem.animate( { backgroundColor:'white'}, 500).animate( { backgroundColor:'#FFFFC8'}, 500, function() { $(this).removeAttr('style');});
 				
 				var r1 = $a_parent.data('idx');
 				var r2 = $b_parent.data('idx');
@@ -242,16 +233,17 @@ function addDragHandlers() {
 	});
 }
 
-/** Tell the system to swap a row. */
+/*
+* @brief: tell the system to swap rows and inform the graph
+* @param r1, r2 : the rows to be swapped
+*/
 function swapRow(r1, r2) {
 	// Bail if nothing to do.
 	if (r1 == r2) return;
-	
 	// On the last data, swap the rows and cols, then re-blit.
 	swap(_LastDataSet, r1, r2);
 	swap(_LastColourSet, r1, r2);
 	swap(_LastRowLabels, r1, r2);
-	
 	// Blit data to graph.
 	blitData(_LastDataSet);
 	blitRowColours(_LastColourSet);
@@ -260,17 +252,17 @@ function swapRow(r1, r2) {
 /** Swap two elements of an array and return the array. */
 function swap(arr, a, b) { var tmp = arr[a]; arr[a] = arr[b]; arr[b] = tmp; return arr; }
 
-
+/*
+* @brief: handler for dragging the rows
+*/
 function dragMoveListener (event) {
     var target = event.target,
         // keep the dragged position in the data-x/data-y attributes
         x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx,
         y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-
     // translate the element
     target.style.webkitTransform =
-    target.style.transform =
-      'translate(' + x + 'px, ' + y + 'px)';
+    target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
     // update the posiion attributes
     target.setAttribute('data-x', x);
     target.setAttribute('data-y', y);
