@@ -27,8 +27,9 @@ var ENABLESWAP		= false;
 var DRAGLOCK		= false;
 var NAVIGATIONLOCK	= false;
 
-var GRAPH_SERVER 	= "localhost";
-//var GRAPH_SERVER 	= "148.88.227.239";
+var _LastRowLabels = null;
+
+var GRAPH_SERVER 	= HOST;
 
 /** Start up the comms with the graph using a reconnecting websocket. */
 function initComms(study_port, onOpen) {
@@ -51,7 +52,7 @@ function drawLeftAxis() {
 	// Reference element the axis go into.
 	var root = $("body").find("#leftaxis");
 	// Y Axis - or axis on the left hand side of the graph
-	for (var i = 0; i < Y_LIMIT; ++i) {
+	for (var i = Y_LIMIT-1; i > -1; --i) {
 		$("<div>").appendTo(root)
 			.append($("<div>").addClass("text axis_label_left draggable drag-drop").text("v"))
 			.append($("<div>").addClass("bar"))
@@ -178,6 +179,10 @@ function blitRowColours(rows) {
 }
 
 function send(action, data) {
+	console.log("===== ++ ======");
+	console.log(action);
+	console.log(data);
+	console.log("===== ++ ======");
 	if (!commsReady)
 		return;
 	comms.send(JSON.stringify({ action : action, data : data }));
@@ -198,6 +203,9 @@ function swapRow(r1, r2) {
 	// Blit data to graph.
 	blitData(_LastDataSet);
 	blitRowColours(_LastColourSet);
+	
+	/*for (var i = 0; i < 10; ++i)
+		setYAxisLabel(i, _LastRowLabels[i]);*/
 }
 
 /** Swap two elements of an array and return the array. */

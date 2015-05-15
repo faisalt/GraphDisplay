@@ -3,17 +3,20 @@
 * @author Faisal T
 */
 
-//Websocket port
+// Websocket port
 var WS_PORT = 8383;
 
-//Number of 'bars' on the x and y axis
+// Number of 'bars' on the x and y axis
 var Y_LIMIT = 10;
 var X_LIMIT=10;
 
-//URL to datasets
-var DS_URL = "http://localhost/GraphDisplay/data/";
-//var DS_URL = "http://148.88.227.239/GraphDisplay/data/";
+// Host reference
+//var HOST = "148.88.227.179";
+var HOST = "localhost";
 
-//Dataset to use
+// URL to datasets
+var DS_URL = "http://"+HOST+"/GraphDisplay/data/";
+
+// Dataset to use
 var FORCE_DS = "Electricity";
 

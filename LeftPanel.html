@@ -32,9 +32,11 @@ $(document).ready(function() {
 	initComms(WS_PORT, function(){ 
 		console.log("Lower Panel connected to graph");
 		graphDataSet(FORCE_DS);
+		send("reset");
 	});
 	drawLeftAxis();
 	addDragHandlers();
+
 });
 
 </script>
