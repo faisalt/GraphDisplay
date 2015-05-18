@@ -18,5 +18,5 @@ var HOST = "localhost";
 var DS_URL = "http://"+HOST+"/GraphDisplay/data/";
 
 // Dataset to use
-var FORCE_DS = "Electricity";
+var FORCE_DS = "Rainfall-v2";
 

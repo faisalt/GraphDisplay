@@ -1,11 +1,11 @@
 /*
-* Handlers for the left-hand panel of the graph display
+* Handlers for the lower panel of the graph display
 * Created: 15th May 2015.
 */
 
 /** @brief: handler for when the user drags a row to reorganize them **/
 function addLowerDragHandlers() {
-	interact('.draggable')
+	interact('.draggable_x')
 	  .draggable({
 		// enable inertial throwing
 		inertia: false,
@@ -27,42 +27,42 @@ function addLowerDragHandlers() {
 			'moved a distance of ' + (Math.sqrt(event.dx * event.dx + event.dy * event.dy)|0) + 'px');
 		}
 	});
-	interact('.dropzone_y').dropzone({
-		accept: '.draggable',
+	interact('.dropzone_x').dropzone({
+		accept: '.draggable_x',
 		ondropactivate: function (event) {
 			//add feedback (highlighting) to the target being moved
-			event.relatedTarget.classList.add('drag-active');
+			event.relatedTarget.classList.add('drag-active_x');
 		},
 		ondragenter: function (event) {
 			//add feedback (highlighting) to the target being moved to
-			$(event.target).parent().find('.draggable').get(0).classList.add('drop-target');
+			$(event.target).parent().find('.draggable_x').get(0).classList.add('drop-target_x');
 		},
 		ondragleave: function (event) {
 			//remove feedback (highlighting) from the target being moved to
-			$(event.target).parent().find('.draggable').get(0).classList.remove('drop-target');
+			$(event.target).parent().find('.draggable_x').get(0).classList.remove('drop-target_x');
 		},
 		ondrop: function (event) {
-			//when the user drops a target - if on top of another target, and drop-target is activated, enable swapping
-			if($(event.relatedTarget).hasClass('drag-active') &&  
-				$(event.target).parent().find('.draggable').hasClass('drop-target') &&
-				!$(event.target).parent().find('.draggable').hasClass('drag-active')){
+			//when the user drops a target - if on top of another target, and drop-target_x is activated, enable swapping
+			if($(event.relatedTarget).hasClass('drag-active_x') &&  
+				$(event.target).parent().find('.draggable_x').hasClass('drop-target_x') &&
+				!$(event.target).parent().find('.draggable_x').hasClass('drag-active_x')){
 				ENABLESWAP = true;
 			} else { ENABLESWAP = false; }
 			
 			//remove feedback (highlighting) from the target being moved to and also the target
-			var a = $('div.drag-active').get(0);
-			var b = $('div.drop-target').get(0);
-			$a_parent = $('div.drag-active').parent();
-			$b_parent = $('div.drop-target').parent();
+			var a = $('div.drag-active_x').get(0);
+			var b = $('div.drop-target_x').get(0);
+			$a_parent = $('div.drag-active_x').parent();
+			$b_parent = $('div.drop-target_x').parent();
 			
 			if(ENABLESWAP == true) {
-				$('div.drag-active').remove();
-				$('div.drop-target').remove();
+				$('div.drag-active_x').remove();
+				$('div.drop-target_x').remove();
 				
 				$a_parent.prepend(b);
 				$b_parent.prepend(a);
-				$b_elem = $b_parent.find('.draggable');
-				$a_elem = $a_parent.find('.draggable');
+				$b_elem = $b_parent.find('.draggable_x');
+				$a_elem = $a_parent.find('.draggable_x');
 				
 				$a_elem.css({'transform':'','-webkit-transform':''});
 				$b_elem.css({'transform':'','-webkit-transform':''});
@@ -73,16 +73,16 @@ function addLowerDragHandlers() {
 				
 				var r1 = $a_parent.data('idx');
 				var r2 = $b_parent.data('idx');
-				
-				swapRow(r1, r2);
+
+				swapCol(r1, r2);
 			}
-			//event.relatedTarget.classList.remove('drag-active');
-			$a_parent.find('.draggable').get(0).classList.remove('drop-target');
+			//event.relatedTarget.classList.remove('drag-active_x');
+			$a_parent.find('.draggable_x').get(0).classList.remove('drop-target_x');
 			
 		},
 		ondropdeactivate: function (event) {
-			event.relatedTarget.classList.remove('drag-active');
-			event.target.classList.remove('drag-active');
+			event.relatedTarget.classList.remove('drag-active_x');
+			event.target.classList.remove('drag-active_x');
 		}
 	});
 }
