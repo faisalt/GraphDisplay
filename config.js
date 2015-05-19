@@ -8,7 +8,7 @@ var WS_PORT = 8383;
 
 // Number of 'bars' on the x and y axis
 var Y_LIMIT = 10;
-var X_LIMIT=10;
+var X_LIMIT = 10;
 
 // Host reference
 //var HOST = "148.88.227.179";

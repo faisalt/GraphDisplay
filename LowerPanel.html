@@ -10,13 +10,12 @@
 		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>	
 		<script type="text/javascript" src="js/functions.js"></script>	
 		<script type="text/javascript" src="js/lowerpanelhandler.js"></script>
+		<script type="text/javascript" src="js/navigationscrollbar.js"></script>
 	</head>
 	
 	<body>
 		<div id="loweraxis"></div>
 		<div id="lowerpanelfunctions"></div>
-		<!-- Navigation scrollbar -->
-		<div id="hscroll" class="scroll"><div class="nub"></div><div class="ghost"></div></div>
 	</body>
 	
 </html>
@@ -29,12 +28,10 @@ $(document).ready(function() {
 		console.log("Lower Panel connected to graph");
 		send("reset");
 		graphDataSet(FORCE_DS);
-		drawLowerAxis();
-		addLowerDragHandlers();
-		addScrollbarHandlers();
-		//scrollAnimate();
 	});
-	
+	drawLowerAxis();
+	addLowerDragHandlers(); //added for dragging/reorganizing the column labels
+	addLowerNavigationScrollbar(); //added for navigating through a larger dataset (more columns that can fit on the 10x10 grid)
 });
+
 </script>
-	
