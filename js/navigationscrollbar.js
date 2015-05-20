@@ -1,18 +1,39 @@
+/**
+* Adds a navigation scrollbar to the interface along with appropriate handlers.
+*/
+
+var LEFTSCROLLNUB 	= 0;
+var LOWERSCROLLNUB 	= 0;
+localStorage['XINDEX'] = 0;
+localStorage['YINDEX'] = 0;
+
+/** **/
 function addLowerNavigationScrollbar() {
 	addGraphicalScrollbar();
+	adjustLowerScrollbarSize();
 	addScrollbarHandlers();
 }
+/** **/
 function addLeftNavigationScrollbar() {
 	addLeftGraphicalScrollbar();
+	adjustLeftScrollbarSize();
 	addLeftScrollbarHandlers();
 }
-
+/** **/
 function addGraphicalScrollbar() {
 	$('body').append('<div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div>');
 }
-
+/** **/
 function addLeftGraphicalScrollbar() {
 	$('body').append('<div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div>');
+}
+/** **/
+function adjustLowerScrollbarSize() {
+	var hscroll_size = (windowsize / _COLLENGTH)*100;
+	if(hscroll_size < 5) hscroll_size=5;
+	LOWERSCROLLNUB = Math.round(hscroll_size);
+	$("#hscroll .nub_x").css("width", LOWERSCROLLNUB+"%");
+	$("#hscroll .ghost_x").css("width", LOWERSCROLLNUB+"%");
 }
 
 /** Add handlers for the scrollbar to navigate through a dataset. */
@@ -23,13 +44,13 @@ function addScrollbarHandlers() {
 		var touches = event.originalEvent.touches;
 		if (touches.length != 1) return;
 		var touch =  touches[0];
-		
 		// Compute position of touch as a percentage.
 		var xaxis = that.attr("id") == "hscroll";
 		var x = (touch.pageX - that.offset().left) / that.width();
-		var y = (touch.pageY - that.offset().top)  / that.height();
-		var percent = xaxis ? x : y;
-		percent = percent.clamp(0, 0.9);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
+		var percent = x;
+		var temp = parseFloat(LOWERSCROLLNUB/100).toFixed(1);
+		var clampLower = parseFloat(1-temp).toFixed(1);
+		percent = percent.clamp(0, clampLower);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
 
 		// Update scrollbars.
 		that.find(".nub_x").css(xaxis ? "left" : "top", (percent * 100) + "%");
@@ -41,46 +62,39 @@ function addScrollbarHandlers() {
 		scrollAnimate();
 	});
 }
-
+/** **/
 function scrollAnimate() {
-	// Make sure we are running fast!
-	send("zixelspeed", { speed: 0 });
-	
 	// Cap targets and current.
 	target_wCol = target_wCol.clamp(0, _COLLENGTH);
-	target_wRow = target_wRow.clamp(0, _ROWLENGTH);
 	current_wCol = current_wCol.clamp(0, _COLLENGTH);
-	current_wRow = current_wRow.clamp(0, _ROWLENGTH);
-	
 	// Move slider/send data if current position doesn't equal to target
 	if(current_wCol != target_wCol) {
+		// Make sure we are running fast!
+		send("zixelspeed", { speed: 0 });
 		// Compute direction of motion.
 		var step = 1;
 		var dx = (target_wCol < current_wCol) ? -step : step;
-		var dy = (target_wRow < current_wRow) ? -step : step;
-		
 		// Bring it closer.
 		var bMoved = false;
 		if (target_wCol != current_wCol) { current_wCol += dx; bMoved -= true; }
-		if (target_wRow != current_wRow) { current_wRow += dy; bMoved -= true;  }
-		
 		// Redraw and repeat.
-		redraw(current_wRow, current_wCol);
+		redraw(current_wCol);
 		setTimeout(scrollAnimate, 500);
 	}
 }
 /** Redraw the data set with a given window. */
-function redraw(wrow, wcol) {
+function redraw(wcol) {
 	// Limit to 0 and len-windowsize.
-	wrow = wrow.clamp(0, _ROWLENGTH - windowsize);
 	wcol = wcol.clamp(0, _COLLENGTH - windowsize);
 	 // Compute the window.
 	var data = emptyBlock();
+	var yindex = parseInt(localStorage.getItem('YINDEX'));
 	for (var row=0; row<windowsize; ++row){
 		for (var col=0; col<windowsize; ++col) { 
-			data[row][col] = _allData[wrow + row][wcol + col]; 
+			data[row][col] = _allData[yindex + row][wcol + col]; 
 		}
 	}
+	localStorage['XINDEX'] = wcol;
 	_LastDataSet = data;
 	// Push to the graph with explicit normalisation parameters.
 	send("boundeddataset", { 
@@ -89,17 +103,25 @@ function redraw(wrow, wcol) {
 		maxz: DATAMAX + ((DATAMAX-DATAMIN) * 0.8),
 	});
 	// Update the rows and column labels to reflect the new window.
-	for (var i=0; i<windowsize; ++i) {
-		setXAxisLabel(i, _allCols[wcol + i])
-		setYAxisLabel(i, _allRows[wrow + i])
-	}
+	for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _allCols[wcol + i]); }
 	// Update the position of the ghost scrollbars on the lower panel.
 	$("#hscroll .ghost_x").css("left", ((wcol / _COLLENGTH) * 100) + "%");
-	$("#vscroll .ghost_x").css("top", ((wrow / _ROWLENGTH) * 100) + "%");
 }
 
-
-function addLeftScrollbarHandlers() {
+/* ========================================================================
+ * ====================== LEFT PANEL scrollbar ============================
+ * ========================================================================
+ */
+function adjustLeftScrollbarSize() {
+	var vscroll_size = (windowsize / _ROWLENGTH)*100;
+	if(vscroll_size < 5) vscroll_size=5;
+	LEFTSCROLLNUB = Math.round(vscroll_size);
+	$("#vscroll .nub_y").css("height", LEFTSCROLLNUB+"%");
+	$("#vscroll .ghost_y").css("height", LEFTSCROLLNUB+"%");
+}
+ 
+ /** Handlers for scrolling on the left hand panel (i.e. y axis). **/
+function addLeftScrollbarHandlers() {	
 	$(".scroll_y").bind("touchmove", function(event) {		
 		// One event only, get position of touch as a percentage.
 		var that = $(this);
@@ -109,13 +131,13 @@ function addLeftScrollbarHandlers() {
 		
 		// Compute position of touch as a percentage.
 		var yaxis = that.attr("id") == "vscroll";
-		var x = (touch.pageX - that.offset().left) / that.width();
 		var y = (touch.pageY - that.offset().top)  / that.height();
-		var percent = yaxis ? y : x;
-		percent = percent.clamp(0, 0.9);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
-
+		var percent = y;
+		var temp = parseFloat(LEFTSCROLLNUB/100).toFixed(1);
+		var clampUpper = parseFloat(1-temp).toFixed(1);
+		percent = percent.clamp(0, clampUpper);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
 		// Update scrollbars.
-		that.find(".nub_y").css(yaxis ? "top" : "left", (percent * 100) + "%");
+		that.find(".nub_y").css("top", (percent * 100) + "%");
 		
 		// Adjust the percentage relative to the window size.
 		if (yaxis) target_wRow = Math.floor(_ROWLENGTH * percent);
@@ -124,48 +146,40 @@ function addLeftScrollbarHandlers() {
 		scrollAnimate_Y();
 	});
 }
-
-
+ /** Animate the scrollbar. **/
 function scrollAnimate_Y() {
-	// Make sure we are running fast!
-	send("zixelspeed", { speed: 0 });
-	
 	// Cap targets and current.
-	target_wCol = target_wCol.clamp(0, _COLLENGTH);
 	target_wRow = target_wRow.clamp(0, _ROWLENGTH);
-	current_wCol = current_wCol.clamp(0, _COLLENGTH);
 	current_wRow = current_wRow.clamp(0, _ROWLENGTH);
+	//console.log(target_wRow +" | "+ current_wRow);
 	// Move slider/send data if current position doesn't equal to target
 	if(current_wRow != target_wRow) {
+		// Make sure we are running fast!
+		send("zixelspeed", { speed: 0 });
 		// Compute direction of motion.
 		var step = 1;
-		var dx = (target_wCol < current_wCol) ? -step : step;
 		var dy = (target_wRow < current_wRow) ? -step : step;
-		
 		// Bring it closer.
 		var bMoved = false;
-		if (target_wCol != current_wCol) { current_wCol += dx; bMoved -= true; }
 		if (target_wRow != current_wRow) { current_wRow += dy; bMoved -= true;  }
-		
 		// Redraw and repeat.
-		redraw_Y(current_wRow, current_wCol);
+		redraw_Y(current_wRow);
 		setTimeout(scrollAnimate_Y, 500);
 	}
 }
-
 /** Redraw the data set with a given window. */
-function redraw_Y(wrow, wcol) {
+function redraw_Y(wrow) {
 	// Limit to 0 and len-windowsize.
-	wrow = wrow.clamp(0, _ROWLENGTH - windowsize);
-	wcol = wcol.clamp(0, _COLLENGTH - windowsize);
-	
+	wrow = wrow.clamp(0, _ROWLENGTH - windowsize);	
 	// Compute the window.
 	var data = emptyBlock();
+	var xindex = parseInt(localStorage.getItem('XINDEX'));
 	for (var row=0; row<windowsize; ++row){
 		for (var col=0; col<windowsize; ++col) { 
-			data[row][col] = _allData[wrow + row][wcol + col]; 
+			data[row][col] = _allData[wrow + row][xindex + col]; 
 		}
 	}
+	localStorage['YINDEX'] = wrow;
 	_LastDataSet = data;
 	// Push to the graph with explicit normalisation parameters.
 	send("boundeddataset", { 
@@ -175,10 +189,11 @@ function redraw_Y(wrow, wcol) {
 	});
 	// Update the rows and column labels to reflect the new window.
 	for (var i=0; i<windowsize; ++i) {
-		setXAxisLabel(i, _allCols[wcol + i])
 		setYAxisLabel(i, _allRows[wrow + i])
 	}
 	// Update the position of the ghost scrollbars on the lower panel.
-	$("#hscroll .ghost_x").css("left", ((wcol / _COLLENGTH) * 100) + "%");
-	$("#vscroll .ghost_x").css("top", ((wrow / _ROWLENGTH) * 100) + "%");
+	$("#vscroll .ghost_y").css("top", ((wrow / _ROWLENGTH) * 100) + "%");
 }
+/* 
+ * =================== End LEFT PANEL scrollbar ==========================
+ */

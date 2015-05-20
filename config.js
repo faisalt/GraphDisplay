@@ -1,6 +1,5 @@
 /* 
 * Configuration file to declare constants, etc. 
-* @author Faisal T
 */
 
 // Websocket port
@@ -19,4 +18,7 @@ var DS_URL = "http://"+HOST+"/GraphDisplay/data/";
 
 // Dataset to use
 var FORCE_DS = "Rainfall-v2";
+
+// Should AJAX calls use the cache?
+$.ajaxSetup({ cache: false });
 

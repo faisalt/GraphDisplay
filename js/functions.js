@@ -121,7 +121,7 @@ function drawLowerAxis() {
  * @param sDataSet The data set to load.
  * @param name The name that describes the data set.
  */
-function graphDataSet(sDataSet, name) {	
+function graphDataSet(sDataSet, name, callback) {	
 	// Guess at the name.
 	name = name || sDataSet;
 	// Fade out the function name.
@@ -199,10 +199,13 @@ function graphDataSet(sDataSet, name) {
 	// Load the data set from a file.
 	$.ajax({
 		url: DS_URL + sDataSet + ".csv",
-		aync: false,
-		success: processData,
-		dataType: "text"
+		dataType: "text",
+		success: function(data) {
+			processData(data);
+			callback();
+		} 
 	});
+	
 }
 
 /** Blit a row of data items to the graph. Format: [ [c0, c1, .. ], [c0, c1, .. ], ... ] */

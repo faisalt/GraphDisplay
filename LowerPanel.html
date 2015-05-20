@@ -2,9 +2,9 @@
 	<head>
 		<title>EMERGE display - left</title>
 		<link rel="stylesheet" type="text/css" href="style.css">
-		<script type="text/javascript" src="config.js"></script>	
 		<script type="text/javascript" src="js/jquery-1.8.2.js"></script>
 		<script type="text/javascript" src="js/jquery-ui-1.9.1.custom.min.js"></script>
+		<script type="text/javascript" src="config.js"></script>	
 		<script type="text/javascript" src="js/interactjs.js"></script>	
 		<script type="text/javascript" src="js/jquery.nearest.min.js"></script>
 		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>	
@@ -27,11 +27,12 @@ $(document).ready(function() {
 	initComms(WS_PORT, function(){ 
 		console.log("Lower Panel connected to graph");
 		send("reset");
-		graphDataSet(FORCE_DS);
+		graphDataSet(FORCE_DS, "", function() {
+			addLowerNavigationScrollbar(); //added for navigating through a larger dataset (more columns that can fit on the 10x10 grid)
+		});
 	});
 	drawLowerAxis();
 	addLowerDragHandlers(); //added for dragging/reorganizing the column labels
-	addLowerNavigationScrollbar(); //added for navigating through a larger dataset (more columns that can fit on the 10x10 grid)
 });
 
 </script>
