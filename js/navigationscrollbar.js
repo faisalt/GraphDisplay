@@ -97,6 +97,7 @@ function redraw(wcol) {
 	localStorage['XINDEX'] = wcol;
 	_LastDataSet = data;
 	// Push to the graph with explicit normalisation parameters.
+	
 	send("boundeddataset", { 
 		data:_LastDataSet,
 		minz: DATAMIN - (DATAMIN * 0.2),

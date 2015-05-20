@@ -10,8 +10,8 @@ var Y_LIMIT = 10;
 var X_LIMIT = 10;
 
 // Host reference
-//var HOST = "148.88.227.179";
-var HOST = "localhost";
+var HOST = "148.88.227.201";
+//var HOST = "localhost";
 
 // URL to datasets
 var DS_URL = "http://"+HOST+"/GraphDisplay/data/";
@@ -21,4 +21,3 @@ var FORCE_DS = "Rainfall-v2";
 
 // Should AJAX calls use the cache?
 $.ajaxSetup({ cache: false });
-

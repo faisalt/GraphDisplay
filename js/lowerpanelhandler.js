@@ -71,10 +71,10 @@ function addLowerDragHandlers() {
 				$a_elem.animate( { backgroundColor:'white'}, 500).animate( { backgroundColor:'#FFFFC8'}, 500, function() { $(this).removeAttr('style');});
 				$b_elem.animate( { backgroundColor:'white'}, 500).animate( { backgroundColor:'#FFFFC8'}, 500, function() { $(this).removeAttr('style');});
 				
-				var r1 = $a_parent.data('idx');
-				var r2 = $b_parent.data('idx');
+				var c1 = $a_parent.data('idx');
+				var c2 = $b_parent.data('idx');
 
-				swapCol(r1, r2);
+				swapCol(c1, c2);
 			}
 			//event.relatedTarget.classList.remove('drag-active_x');
 			$a_parent.find('.draggable_x').get(0).classList.remove('drop-target_x');

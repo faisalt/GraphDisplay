@@ -43,6 +43,8 @@ var _allRows		= [];
 var DATAMIN 		= 0;
 var DATAMAX 		= 0;
 
+localStorage["LASTDATASET"]=[];
+
 /** Keep a number within a given range. */
 Number.prototype.clamp = function(min, max) { return Math.min(Math.max(this, min), max); };
 /** Swap two elements of an array and return the array. */
@@ -171,7 +173,7 @@ function graphDataSet(sDataSet, name, callback) {
 				data_row.push( lines[row][col] );
 			}
 		}
-		data.reverse(); //_CHECK
+		//data.reverse(); //_CHECK
 		// Dispatch to the graph.
 		blitData(data);
 		blitRowColours();
@@ -210,7 +212,14 @@ function graphDataSet(sDataSet, name, callback) {
 
 /** Blit a row of data items to the graph. Format: [ [c0, c1, .. ], [c0, c1, .. ], ... ] */
 function blitData(heights) {
-	send("dataset", {data:heights});
+	/*send("dataset", {data:heights});
+	_LastDataSet = heights;*/
+	
+	send("boundeddataset", { 
+		data:heights,
+		minz: DATAMIN - (DATAMIN * 0.2),
+		maxz: DATAMAX + ((DATAMAX-DATAMIN) * 0.8),
+	});
 	_LastDataSet = heights;
 }
 
