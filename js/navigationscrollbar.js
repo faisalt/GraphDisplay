@@ -1,33 +1,30 @@
 /**
 * Adds a navigation scrollbar to the interface along with appropriate handlers.
 */
-
 var LEFTSCROLLNUB 	= 0;
 var LOWERSCROLLNUB 	= 0;
-localStorage['XINDEX'] = 0;
-localStorage['YINDEX'] = 0;
 
-/** **/
+/** Add a navigation scrollbar to the lower panel (i.e. x axis) **/
 function addLowerNavigationScrollbar() {
 	addGraphicalScrollbar();
 	adjustLowerScrollbarSize();
 	addScrollbarHandlers();
 }
-/** **/
+/** Add a navigation scrollbar to the left panel (i.e. y axis) **/
 function addLeftNavigationScrollbar() {
 	addLeftGraphicalScrollbar();
 	adjustLeftScrollbarSize();
 	addLeftScrollbarHandlers();
 }
-/** **/
+/** Add the scrollbar div (lower) **/
 function addGraphicalScrollbar() {
-	$('body').append('<div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div>');
+	$('body').append('<img id="leftarrow" src="images/leftarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="rightarrow" src="images/rightarrow.png"></div>');
 }
-/** **/
+/** Add the scrollbar div (left) **/
 function addLeftGraphicalScrollbar() {
-	$('body').append('<div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div>');
+	$('body').append('<img id="uparrow" src="images/arrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/arrowdn.png"></img>');
 }
-/** **/
+/** Adjust lower scrollbar to the dataset size **/
 function adjustLowerScrollbarSize() {
 	var hscroll_size = (windowsize / _COLLENGTH)*100;
 	if(hscroll_size < 5) hscroll_size=5;
@@ -35,7 +32,6 @@ function adjustLowerScrollbarSize() {
 	$("#hscroll .nub_x").css("width", LOWERSCROLLNUB+"%");
 	$("#hscroll .ghost_x").css("width", LOWERSCROLLNUB+"%");
 }
-
 /** Add handlers for the scrollbar to navigate through a dataset. */
 function addScrollbarHandlers() {
 	$(".scroll_x").bind("touchmove", function(event) {		
@@ -51,18 +47,33 @@ function addScrollbarHandlers() {
 		var temp = parseFloat(LOWERSCROLLNUB/100).toFixed(1);
 		var clampLower = parseFloat(1-temp).toFixed(1);
 		percent = percent.clamp(0, clampLower);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
-
 		// Update scrollbars.
 		that.find(".nub_x").css(xaxis ? "left" : "top", (percent * 100) + "%");
-		
 		// Adjust the percentage relative to the window size.
 		if (xaxis) target_wCol = Math.floor(_COLLENGTH * percent);
 		else target_wRow = Math.floor(_ROWLENGTH * percent);
-		
 		scrollAnimate();
 	});
+	$('#rightarrow').bind("touchstart", function(event) {
+		var that = $(this);
+		that.attr("src", "images/rightarrow_sel.png");
+		if(target_wCol < parseInt(_COLLENGTH)-windowsize && target_wCol > -1) {
+			target_wCol += 1;
+			scrollAnimate();
+		}
+	});
+	$('#leftarrow').bind("touchstart", function(event) {
+		var that = $(this);
+		that.attr("src", "images/leftarrow_sel.png");
+		if(target_wCol > -1) {
+			target_wCol -= 1;
+			scrollAnimate();
+		}
+	});	
+	$('#rightarrow').bind("touchend", function(event) {	var that = $(this);	that.attr("src", "images/rightarrow.png"); });
+	$('#leftarrow').bind("touchend", function(event) {	var that = $(this);	that.attr("src", "images/leftarrow.png"); });
 }
-/** **/
+/** Animate the scrolling action on the lower panel (x axis) **/
 function scrollAnimate() {
 	// Cap targets and current.
 	target_wCol = target_wCol.clamp(0, _COLLENGTH);
@@ -96,6 +107,7 @@ function redraw(wcol) {
 	}
 	localStorage['XINDEX'] = wcol;
 	_LastDataSet = data;
+	localStorage["LASTDATASET"] = JSON.stringify(data);
 	// Push to the graph with explicit normalisation parameters.
 	
 	send("boundeddataset", { 
@@ -114,10 +126,11 @@ function redraw(wcol) {
  * ========================================================================
  */
 function adjustLeftScrollbarSize() {
+	var limiter=1; //look and feel purposes
 	var vscroll_size = (windowsize / _ROWLENGTH)*100;
 	if(vscroll_size < 5) vscroll_size=5;
 	LEFTSCROLLNUB = Math.round(vscroll_size);
-	$("#vscroll .nub_y").css("height", LEFTSCROLLNUB+"%");
+	$("#vscroll .nub_y").css("height", (LEFTSCROLLNUB-limiter)+"%");
 	$("#vscroll .ghost_y").css("height", LEFTSCROLLNUB+"%");
 }
  
@@ -129,23 +142,38 @@ function addLeftScrollbarHandlers() {
 		var touches = event.originalEvent.touches;
 		if (touches.length != 1) return;
 		var touch =  touches[0];
-		
 		// Compute position of touch as a percentage.
 		var yaxis = that.attr("id") == "vscroll";
 		var y = (touch.pageY - that.offset().top)  / that.height();
 		var percent = y;
 		var temp = parseFloat(LEFTSCROLLNUB/100).toFixed(1);
 		var clampUpper = parseFloat(1-temp).toFixed(1);
-		percent = percent.clamp(0, clampUpper);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
+		percent = percent.clamp(0, (clampUpper));// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
 		// Update scrollbars.
 		that.find(".nub_y").css("top", (percent * 100) + "%");
-		
 		// Adjust the percentage relative to the window size.
 		if (yaxis) target_wRow = Math.floor(_ROWLENGTH * percent);
 		else target_wcOL = Math.floor(_COLLENGTH * percent);
-		
 		scrollAnimate_Y();
 	});
+	$('#downarrow').bind("touchstart", function(event) {
+		var that = $(this);
+		that.attr("src", "images/arrowdn_sel.png");
+		if(target_wRow < parseInt(_ROWLENGTH)-windowsize && target_wRow > -1) {
+			target_wRow += 1;
+			scrollAnimate_Y();
+		}
+	});
+	$('#uparrow').bind("touchstart", function(event) {
+		var that = $(this);
+		that.attr("src", "images/arrow_sel.png");
+		if(target_wRow > -1) {
+			target_wRow -= 1;
+			scrollAnimate_Y();
+		}
+	});	
+	$('#downarrow').bind("touchend", function(event) {	var that = $(this);	that.attr("src", "images/arrowdn.png"); });
+	$('#uparrow').bind("touchend", function(event) {	var that = $(this);	that.attr("src", "images/arrow.png"); });
 }
  /** Animate the scrollbar. **/
 function scrollAnimate_Y() {
@@ -166,7 +194,7 @@ function scrollAnimate_Y() {
 		// Redraw and repeat.
 		redraw_Y(current_wRow);
 		setTimeout(scrollAnimate_Y, 500);
-	}
+	} 
 }
 /** Redraw the data set with a given window. */
 function redraw_Y(wrow) {
@@ -182,6 +210,8 @@ function redraw_Y(wrow) {
 	}
 	localStorage['YINDEX'] = wrow;
 	_LastDataSet = data;
+	localStorage["LASTDATASET"] = JSON.stringify(data);
+	
 	// Push to the graph with explicit normalisation parameters.
 	send("boundeddataset", { 
 		data:_LastDataSet,
@@ -195,6 +225,3 @@ function redraw_Y(wrow) {
 	// Update the position of the ghost scrollbars on the lower panel.
 	$("#vscroll .ghost_y").css("top", ((wrow / _ROWLENGTH) * 100) + "%");
 }
-/* 
- * =================== End LEFT PANEL scrollbar ==========================
- */

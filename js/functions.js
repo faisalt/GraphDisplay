@@ -43,14 +43,12 @@ var _allRows		= [];
 var DATAMIN 		= 0;
 var DATAMAX 		= 0;
 
-localStorage["LASTDATASET"]=[];
-
 /** Keep a number within a given range. */
 Number.prototype.clamp = function(min, max) { return Math.min(Math.max(this, min), max); };
 /** Swap two elements of an array and return the array. */
 function swap(arr, a, b) { var tmp = arr[a]; arr[a] = arr[b]; arr[b] = tmp; return arr; }
 /** Swap an array within an array. */
-function swapInner(arr, a, b) { for (var row = 0; row < 10; ++row) { swap(arr[row], a, b); } return arr; }
+function swapInner(arr, a, b) { for (var row = 0; row < Y_LIMIT; ++row) { swap(arr[row], a, b); } return arr; }
 /** Set labels for the lower panel columns. */
 function setXAxisLabel(i, value) { $("#axislabel_x_" + i).find("div.text").find('span.spantext').text(value); }
 /** Set labels for the left hand panel rows. */
@@ -59,10 +57,10 @@ function setYAxisLabel(i, value) { $("#axislabel_y_" + i).find("div.text").text(
 /** Create a zeroed data block. */
 function emptyBlock() {
 	var data = [];
-	for (var row = 0; row < 10; ++row){
+	for (var row = 0; row < Y_LIMIT; ++row){
 		var data_row = [];
 		data.push(data_row);
-		for (var col = 0; col < 10; ++col){
+		for (var col = 0; col < X_LIMIT; ++col){
 			data_row.push( 0.0 );
 		}
 	}
@@ -83,6 +81,8 @@ function initComms(study_port, onOpen) {
 		// Pull valid data from the graph.
 		var kMessage 	= JSON.parse(event.data);
 		console.log(kMessage);
+		// If the graph wants the app to invoke a function.
+		if (kMessage.action == "function") { window[kMessage.data.name].apply(window, kMessage.data.args); }
 	};
 }
 /** Add axis to the left panel of the graph. */
@@ -92,22 +92,20 @@ function drawLeftAxis() {
 	// Y Axis - or axis on the left hand side of the graph
 	for (var i = Y_LIMIT-1; i > -1; --i) {
 		$("<div>").appendTo(root)
-			.append($("<div>").addClass("text axis_label_left draggable_y drag-drop_y").text("v"))
+			.append($("<div>").addClass("text axis_label_left draggable_y drag-drop_y"))
 			.append($("<div>").addClass("bar"))
 			.addClass("control axislabel y")
 			.attr("id", "axislabel_y_" + i)
 			.data("axis", "y").data("idx", i)
 			.append($("<div>").addClass("dropzone_y"))
 	}
-	// Stick some initial labels on them.
-	for (var i = 0; i < 10; ++i){ setYAxisLabel(i, i + 1); }
 }
 /** Add axis to the bottom panel of the graph. */
 function drawLowerAxis() {
 	// Reference element the axis go into.
 	var root = $("body").find("#loweraxis");
 	// X Axis - or axis on the lower end of the graph
-	for (var i = 0; i < 10; ++i) {
+	for (var i = 0; i < X_LIMIT; ++i) {
 		$("<div>").appendTo(root)
 		.append($("<div>").addClass("text axis_label_lower draggable_x drag-drop_x"))
 		.append($("<div>").addClass("bar"))
@@ -192,7 +190,7 @@ function graphDataSet(sDataSet, name, callback) {
 				$(xml).find("color").each(function(i, el){
 					rows.push({ r : $(this).attr("r"), g : $(this).attr("g"), b : $(this).attr("b") });
 				});
-				rows.reverse(); //_CHECK
+				//rows.reverse(); //_CHECK
 				// Send row colours too.
 				if (USE_DATASET_COLOURS) { blitRowColours(rows); }
 			}			
@@ -214,13 +212,13 @@ function graphDataSet(sDataSet, name, callback) {
 function blitData(heights) {
 	/*send("dataset", {data:heights});
 	_LastDataSet = heights;*/
-	
 	send("boundeddataset", { 
 		data:heights,
 		minz: DATAMIN - (DATAMIN * 0.2),
 		maxz: DATAMAX + ((DATAMAX-DATAMIN) * 0.8),
 	});
 	_LastDataSet = heights;
+	localStorage["LASTDATASET"] = JSON.stringify(heights);
 }
 
 /** Blit a list of row colours to the graph. Format: [ {r:.., g:.., b:...}, ... ] */
@@ -235,13 +233,6 @@ function blitRowColours(rows) {
 }
 
 function send(action, data) {
-	/*console.log("===== ++ ======");
-	console.log(action);
-	console.log(data);
-	console.log("===== ++ ======");*/
-	if(action == "dataset") {
-		//console.log(data);
-	}
 	if (!commsReady)
 		return;
 	comms.send(JSON.stringify({ action : action, data : data }));
@@ -254,6 +245,8 @@ function swapRow(r1, r2) {
 	// Bail if nothing to do.
 	if (r1 == r2) return;
 	// On the last data, swap the rows and cols, then re-blit.
+	var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
+	_LastDataSet = datachanged ? datachanged : _LastDataSet;
 	swap(_LastDataSet, r1, r2);
 	swap(_LastColourSet, r1, r2);
 	swap(_LastRowLabels, r1, r2);
@@ -267,10 +260,28 @@ function swapCol(c1, c2) {
 	// Bail if nothing to do.
 	if (c1 == c2) return;
 	// On the last data, swap the rows and cols, then re-blit.
+	var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
+	_LastDataSet = datachanged ? datachanged : _LastDataSet;
 	swapInner(_LastDataSet, c1, c2);
 	swapInner(_LastColourSet, c1, c2);
 	swap(_LastColLabels, c1, c2);
 	// Blit data to graph.
 	blitData(_LastDataSet);
 	blitRowColours(_LastColourSet);
+}
+
+function forceSwap(row, col) {
+}
+function storeSwappedCol(col) {
+}
+function storeSwappedRow(row) {
+}
+
+function setTouchedValue(row, col, value) {
+	var annotatedVals = [];
+	annotatedVals.push({row:row,col:col});
+	console.log(annotatedVals);
+}
+function removeTouchedValue(row, col, value) {
+
 }

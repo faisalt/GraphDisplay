@@ -56,8 +56,8 @@ span.title {
 	z-index:2;
 	color:black;
 	/*Change below for display size and resolution*/
-	height:60px;
-	margin-bottom:25px;
+	/*height:60px;
+	margin-bottom:25px;*/
 }
 
 .axis_label.drag-active_y, .axis_label.drag-active_x {
@@ -162,8 +162,9 @@ div#loweraxis {
 }
 			
 #hscroll.scroll_x{ 
-	bottom: 3%; 
-	width: 95%;
+	bottom: 1%; 
+	width: 80%;
+	left:10%;
 	margin:0 auto;
 	height: 10%; 
 	background-color: rgb(52, 52, 52); 
@@ -173,7 +174,8 @@ div#loweraxis {
 	left: 1%; 
 	width: 7%;
 	margin:0 auto;
-	height: 85%; 
+	height: 80%; 
+	top:10%;
 	background-color: rgb(52, 52, 52); 
 }
 
@@ -196,5 +198,24 @@ div#loweraxis {
 	width: 100%; 
 	height: 8%; 
 }
-
 /****** End navigation scrollbar styling ********/
+
+#up_one {}
+#down_one {}
+
+#uparrow, #downarrow, #leftarrow {
+	position:absolute;
+	left:1%;
+	padding:none;
+	width:8%;
+}
+#rightarrow {
+	position:absolute;
+	width:8%;
+}
+#uparrow:active, #downarrow:active {}
+
+#downarrow { bottom:0.5%; }
+#uparrow { top:0.5%; }
+#leftarrow { bottom:0.5%;left:0.5%; }
+#rightarrow { bottom:0.5%;right:0.01%; }
