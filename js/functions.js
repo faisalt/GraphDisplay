@@ -274,6 +274,8 @@ function swapCol(c1, c2) {
 	blitRowColours(_LastColourSet);
 }
 
+function overrideDataSet() {}
+
 function forceSwap(row, col) {}
 function storeSwappedCol(col) {}
 function storeSwappedRow(row) {}
