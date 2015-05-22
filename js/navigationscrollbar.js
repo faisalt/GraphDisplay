@@ -54,7 +54,7 @@ function addScrollbarHandlers() {
 		else target_wRow = Math.floor(_ROWLENGTH * percent);
 		scrollAnimate();
 	});
-	$('#rightarrow').bind("touchstart", function(event) {
+	$('#rightarrow').bind("touchstart, click", function(event) {
 		var that = $(this);
 		that.attr("src", "images/rightarrow_sel.png");
 		if(target_wCol < parseInt(_COLLENGTH)-windowsize && target_wCol > -1) {
@@ -62,7 +62,7 @@ function addScrollbarHandlers() {
 			scrollAnimate();
 		}
 	});
-	$('#leftarrow').bind("touchstart", function(event) {
+	$('#leftarrow').bind("touchstart, click", function(event) {
 		var that = $(this);
 		that.attr("src", "images/leftarrow_sel.png");
 		if(target_wCol > -1) {
@@ -109,7 +109,6 @@ function redraw(wcol) {
 	_LastDataSet = data;
 	localStorage["LASTDATASET"] = JSON.stringify(data);
 	// Push to the graph with explicit normalisation parameters.
-	
 	send("boundeddataset", { 
 		data:_LastDataSet,
 		minz: DATAMIN - (DATAMIN * 0.2),

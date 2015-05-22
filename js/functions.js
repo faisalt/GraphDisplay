@@ -202,6 +202,7 @@ function graphDataSet(sDataSet, name, callback) {
 		dataType: "text",
 		success: function(data) {
 			processData(data);
+			localStorage["DATAINITIALIZED"] = true;
 			callback();
 		} 
 	});
@@ -210,8 +211,6 @@ function graphDataSet(sDataSet, name, callback) {
 
 /** Blit a row of data items to the graph. Format: [ [c0, c1, .. ], [c0, c1, .. ], ... ] */
 function blitData(heights) {
-	/*send("dataset", {data:heights});
-	_LastDataSet = heights;*/
 	send("boundeddataset", { 
 		data:heights,
 		minz: DATAMIN - (DATAMIN * 0.2),
@@ -235,7 +234,10 @@ function blitRowColours(rows) {
 function send(action, data) {
 	if (!commsReady)
 		return;
-	comms.send(JSON.stringify({ action : action, data : data }));
+	if(DEBUG_MODE == true) {
+		if(action == "boundeddataset") { comms.send(JSON.stringify({data:data.data})); }
+	}
+	else { comms.send(JSON.stringify({ action : action, data : data })); }
 }
 /*
 * @brief: tell the system to swap rows and inform the graph
@@ -245,8 +247,9 @@ function swapRow(r1, r2) {
 	// Bail if nothing to do.
 	if (r1 == r2) return;
 	// On the last data, swap the rows and cols, then re-blit.
-	var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
-	_LastDataSet = datachanged ? datachanged : _LastDataSet;
+	//var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
+	//_LastDataSet = datachanged ? datachanged : _LastDataSet;
+	_LastDataSet = JSON.parse(localStorage["LASTDATASET"]);
 	swap(_LastDataSet, r1, r2);
 	swap(_LastColourSet, r1, r2);
 	swap(_LastRowLabels, r1, r2);
@@ -260,8 +263,9 @@ function swapCol(c1, c2) {
 	// Bail if nothing to do.
 	if (c1 == c2) return;
 	// On the last data, swap the rows and cols, then re-blit.
-	var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
-	_LastDataSet = datachanged ? datachanged : _LastDataSet;
+	//var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
+	//_LastDataSet = datachanged ? datachanged : _LastDataSet;
+	_LastDataSet = JSON.parse(localStorage["LASTDATASET"]);
 	swapInner(_LastDataSet, c1, c2);
 	swapInner(_LastColourSet, c1, c2);
 	swap(_LastColLabels, c1, c2);
@@ -270,18 +274,13 @@ function swapCol(c1, c2) {
 	blitRowColours(_LastColourSet);
 }
 
-function forceSwap(row, col) {
-}
-function storeSwappedCol(col) {
-}
-function storeSwappedRow(row) {
-}
+function forceSwap(row, col) {}
+function storeSwappedCol(col) {}
+function storeSwappedRow(row) {}
 
 function setTouchedValue(row, col, value) {
 	var annotatedVals = [];
 	annotatedVals.push({row:row,col:col});
 	console.log(annotatedVals);
 }
-function removeTouchedValue(row, col, value) {
-
-}
+function removeTouchedValue(row, col, value) {}

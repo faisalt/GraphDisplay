@@ -29,3 +29,8 @@ localStorage["LASTDATASET"]=[]; // Dataset changes from other panels - e.g. if u
 localStorage["ANNOTATED"]=[]; // List of Annotated bars (x,y coordinates that need to be recorded).
 localStorage["SWAPPEDCOLS"]=[]; // List of columns that have been swapped (re organized).
 localStorage["SWAPPEDROWS"]=[]; // List of rows that have been swapped (re organized).
+
+localStorage["DATAINITIALIZED"]=false; // TO DO : avoid data reset when a new display connects (if one is already connected).
+
+// Debug mode
+var DEBUG_MODE = true;
