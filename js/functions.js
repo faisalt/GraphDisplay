@@ -66,7 +66,6 @@ function emptyBlock() {
 	}
 	return data;
 }
-
 /** Start up the comms with the graph using a reconnecting websocket. */
 function initComms(study_port, onOpen) {
 	// Connect to the graph.
@@ -202,7 +201,6 @@ function graphDataSet(sDataSet, name, callback) {
 		dataType: "text",
 		success: function(data) {
 			processData(data);
-			localStorage["DATAINITIALIZED"] = true;
 			callback();
 		} 
 	});
@@ -217,10 +215,9 @@ function blitData(heights) {
 		maxz: DATAMAX + ((DATAMAX-DATAMIN) * 0.8),
 	});
 	_LastDataSet = heights;
-	localStorage["LASTDATASET"] = JSON.stringify(heights);
 }
 
-/** Blit a list of row colours to the graph. Format: [ {r:.., g:.., b:...}, ... ] */
+/** Transmit a list of row colours to the graph. Format: [ {r:.., g:.., b:...}, ... ] */
 function blitRowColours(rows) {
 	if (rows === undefined)	{
 		_LastColourSet = null;
@@ -235,6 +232,7 @@ function send(action, data) {
 	if (!commsReady)
 		return;
 	if(DEBUG_MODE == true) {
+		// A dumbed down version of the data sent to the server
 		if(action == "boundeddataset") { comms.send(JSON.stringify({data:data.data})); }
 	}
 	else { comms.send(JSON.stringify({ action : action, data : data })); }
@@ -246,14 +244,11 @@ function send(action, data) {
 function swapRow(r1, r2) {
 	// Bail if nothing to do.
 	if (r1 == r2) return;
-	// On the last data, swap the rows and cols, then re-blit.
-	//var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
-	//_LastDataSet = datachanged ? datachanged : _LastDataSet;
-	_LastDataSet = JSON.parse(localStorage["LASTDATASET"]);
+	// On the last data, swap the rows and cols, then re-transmit.
 	swap(_LastDataSet, r1, r2);
 	swap(_LastColourSet, r1, r2);
 	swap(_LastRowLabels, r1, r2);
-	// Blit data to graph.
+	// Transmit data to graph.
 	blitData(_LastDataSet);
 	blitRowColours(_LastColourSet);
 }
@@ -263,9 +258,6 @@ function swapCol(c1, c2) {
 	// Bail if nothing to do.
 	if (c1 == c2) return;
 	// On the last data, swap the rows and cols, then re-blit.
-	//var datachanged = localStorage.getItem("LASTDATASET") ? JSON.parse(localStorage.getItem("LASTDATASET")) : null;
-	//_LastDataSet = datachanged ? datachanged : _LastDataSet;
-	_LastDataSet = JSON.parse(localStorage["LASTDATASET"]);
 	swapInner(_LastDataSet, c1, c2);
 	swapInner(_LastColourSet, c1, c2);
 	swap(_LastColLabels, c1, c2);

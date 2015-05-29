@@ -99,17 +99,14 @@ function redraw(wcol) {
 	wcol = wcol.clamp(0, _COLLENGTH - windowsize);
 	 // Compute the window.
 	var data = emptyBlock();
-	var yindex = parseInt(localStorage.getItem('YINDEX'));
+	var yindex = 0; //_CHECK : replace with the y position from the left panel (or whichever panel controls the y axis)
 	for (var row=0; row<windowsize; ++row){
 		for (var col=0; col<windowsize; ++col) { 
 			data[row][col] = _allData[yindex + row][wcol + col]; 
 		}
 	}
-	localStorage['XINDEX'] = wcol;
 	_LastDataSet = data;
-	localStorage["LASTDATASET"] = JSON.stringify(data);
 	// Push to the graph with explicit normalisation parameters.
-	
 	send("boundeddataset", { 
 		data:_LastDataSet,
 		minz: DATAMIN - (DATAMIN * 0.2),
@@ -202,16 +199,13 @@ function redraw_Y(wrow) {
 	wrow = wrow.clamp(0, _ROWLENGTH - windowsize);	
 	// Compute the window.
 	var data = emptyBlock();
-	var xindex = parseInt(localStorage.getItem('XINDEX'));
+	var xindex = 0; //_CHECK : replace with the x position from the left panel (or whichever panel controls the x axis)
 	for (var row=0; row<windowsize; ++row){
 		for (var col=0; col<windowsize; ++col) { 
 			data[row][col] = _allData[wrow + row][xindex + col]; 
 		}
 	}
-	localStorage['YINDEX'] = wrow;
 	_LastDataSet = data;
-	localStorage["LASTDATASET"] = JSON.stringify(data);
-	
 	// Push to the graph with explicit normalisation parameters.
 	send("boundeddataset", { 
 		data:_LastDataSet,
