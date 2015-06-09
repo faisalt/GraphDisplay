@@ -5,8 +5,7 @@
 
 /** @brief: handler for when the user drags a row to reorganize them **/
 function addDragHandlers() {
-	interact('.draggable_y')
-	  .draggable({
+	interact('.draggable_y').draggable({
 		// enable inertial throwing
 		inertia: false,
 		// keep the element within the area of it's parent

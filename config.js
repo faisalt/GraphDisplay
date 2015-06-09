@@ -23,4 +23,4 @@ var FORCE_DS = "Rainfall-v2";
 $.ajaxSetup({ cache: false });
 
 // Debug mode
-var DEBUG_MODE = true;
+var DEBUG_MODE = false;

@@ -6,6 +6,15 @@
  * TO DO items are marked in comments with _CHECK so just ctrl-F
  * 
  */
+ 
+ /* 
+ * Simple Javascript Inheritance.
+ * @author John Resig (http://ejohn.org/)
+ * @license MIT Licensed
+ * http://ejohn.org/blog/simple-javascript-inheritance/
+ */
+(function(){var e=false,t=/xyz/.test(function(){xyz})?/\b_super\b/:/.*/;this.Class=function(){};Class.extend=function(n){function o(){if(!e&&this.init)this.init.apply(this,arguments)}var r=this.prototype;e=true;var i=new this;e=false;for(var s in n){i[s]=typeof n[s]=="function"&&typeof r[s]=="function"&&t.test(n[s])?function(e,t){return function(){var n=this._super;this._super=r[e];var i=t.apply(this,arguments);this._super=n;return i}}(s,n[s]):n[s]}o.prototype=i;o.prototype.constructor=o;o.extend=arguments.callee;return o}})()
+ 
 var comms 				= null;
 var commsReady 			= false;
 var touch 				= null;
@@ -67,22 +76,31 @@ function emptyBlock() {
 	return data;
 }
 /** Start up the comms with the graph using a reconnecting websocket. */
-function initComms(study_port, onOpen) {
+function initComms(clientID, study_port, onOpen) {
 	// Connect to the graph.
-	comms = new ReconnectingWebSocket("ws://" + GRAPH_SERVER + ":" + study_port);
-	// Status function bindings.
-	comms.onconnecting	= function() { console.log("[Comms] Connecting"); commsReady = false; }
-	comms.onopen 		= function() { console.log("[Comms] Connected"); commsReady = true; if (onOpen) onOpen(); }
-	comms.onclose 		= function() { console.log("[Comms] Disconnected"); commsReady = false; }
-	comms.onerror  		= function() { console.log("[Comms] Connection Error"); commsReady = false;	}
-	// Logic function bindings (i.e. data processing).
-	comms.onmessage	= function(event) {
-		// Pull valid data from the graph.
-		var kMessage 	= JSON.parse(event.data);
-		console.log(kMessage);
-		// If the graph wants the app to invoke a function.
-		if (kMessage.action == "function") { window[kMessage.data.name].apply(window, kMessage.data.args); }
-	};
+	function connect() {
+		comms = io.connect("ws://" + GRAPH_SERVER + ":" + study_port);
+		comms.on("connect", function(data) {
+			console.log("Connected");
+			commsReady=true;
+			onOpen();
+			comms.emit("clientConnection", clientID);
+		});
+		comms.on("connect_error", function(err) {
+			// Fires when server disconnects AFTER connection had already been made
+			console.log("Connection Failed");
+			commsReady=false;
+		});
+	}
+	$.ajax({
+	  url: 'http://'+GRAPH_SERVER+':'+study_port+'/socket.io/socket.io.js',
+	  dataType: "script",
+	  timeout:6000,
+	  success: function(data){ connect(); },
+	  error:function(jqXHR, status, err) {
+		  initComms(clientID, study_port, onOpen); // try to reconnect after timeout
+	  }
+	});
 }
 /** Add axis to the left panel of the graph. */
 function drawLeftAxis() {
@@ -147,6 +165,7 @@ function graphDataSet(sDataSet, name, callback) {
 			_LastColLabels[col - 1] = lines[0][col];
 		}
 		// Store all values in a big array (for navigation)
+		_allRows=[]; _allCols=[]; _allData=[];
 		for(var row=1; row<_ROWLENGTH+1; row++) {
 			var temp_data=[];
 			_allRows.push(lines[row][0]);
@@ -156,6 +175,8 @@ function graphDataSet(sDataSet, name, callback) {
 			}
 		}		
 		for(var col=1;col<_COLLENGTH; col++) { _allCols.push(lines[0][col]); }
+		
+		updateAllData(_allData, _allRows, _allCols);
 
 		// Get the minimum and maximum of the data set
 		DATAMAX = _allData.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
@@ -227,20 +248,21 @@ function blitRowColours(rows) {
 	send("rowcolours", { data : rows });
 	_LastColourSet = rows;
 }
-
+function updateAllData(data, rows, cols) {
+	if (!commsReady)
+		return;
+	comms.emit("UPDATE_ALLDATA", JSON.stringify({data:data, rows:rows, cols:cols}));
+}
 function send(action, data) {
 	if (!commsReady)
 		return;
 	if(DEBUG_MODE == true) {
 		// A dumbed down version of the data sent to the server
-		if(action == "boundeddataset") { comms.send(JSON.stringify({data:data.data})); }
+		if(action == "boundeddataset") { comms.emit("DEBUG_DATA", JSON.stringify({data:data.data})); }
 	}
-	else { comms.send(JSON.stringify({ action : action, data : data })); }
+	else { comms.emit("DATASET_WINDOW", JSON.stringify({ action : action, data : data })); }
 }
-/*
-* @brief: tell the system to swap rows and inform the graph
-* @param r1, r2 : the rows to be swapped
-*/
+/** Tell the system to swap rows and inform the graph **/
 function swapRow(r1, r2) {
 	// Bail if nothing to do.
 	if (r1 == r2) return;
@@ -266,15 +288,20 @@ function swapCol(c1, c2) {
 	blitRowColours(_LastColourSet);
 }
 
-function overrideDataSet() {}
+var LowerPanel = Class.extend({
+	init: function(settings) {
+		if(settings.draggableLabels == true) {
+			
+		}
+	}
+});
 
+
+
+/* Unimplemented functions */
+function overrideDataSet() {}
 function forceSwap(row, col) {}
 function storeSwappedCol(col) {}
 function storeSwappedRow(row) {}
-
-function setTouchedValue(row, col, value) {
-	var annotatedVals = [];
-	annotatedVals.push({row:row,col:col});
-	console.log(annotatedVals);
-}
+function setTouchedValue(row, col, value) {} // Set a datapoint to be annotated - as triggered by the GRAPH client (C# app)
 function removeTouchedValue(row, col, value) {}
