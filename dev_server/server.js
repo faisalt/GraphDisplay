@@ -100,6 +100,7 @@ io.sockets.on('connection', function (socket) {
 	socket.on("EMERGEClient", function(clientid) {
 		console.log("\r\nClient "+clientid+" has connected!\r\n");
 		_CLIENTCOUNTER++;
+		//socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
 	});
 	/* Request Handlers */
 	socket.on(REQUEST_COLUMN_LENGTH, function(message, callback) {
@@ -221,6 +222,10 @@ function DataSetObject(csvfile, xmlfile) {
 			temp_data.push(_CSVDATA[row][col]);
 		}
 	}
+	
+	var max = allData.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
+	var min = allData.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
+	
 	// Get the data values, specific to a given grid size, and based on x and y index (if user has been scrolling)
 	this.getDataWindow = function() {
 		var datawindow=[];
@@ -248,14 +253,12 @@ function DataSetObject(csvfile, xmlfile) {
 	// Set all column values, e.g. if columns are reorganized by user
 	this.setAllColumnValues = function(data) { allCols = data; }
 	// Maximum value of the entire dataset
-	this.DataMaxValue = function() { 
-		var max = this.AllDataVals().reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);	
-		return max*DATAMAX_LIMITER;
+	this.DataMaxValue = function() { 		
+		return (max + ((max-min) * DATAMAX_LIMITER));
 	}
 	// Minimum value of the entire dataset
 	this.DataMinValue = function() { 
-		var min = this.AllDataVals().reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
-		return min*DATAMIN_LIMITER;
+		return (min - (min * DATAMIN_LIMITER));
 	}
 	// Maximum number of rows in the entire dataset
 	this.TotalMaxRows = function() { return _CSVDATA.length-1;	}
