@@ -87,7 +87,6 @@ function JSONify(data, min, max) {
 
 // Handle incoming requests from clients on connection
 io.sockets.on('connection', function (socket) {
-	console.log("A client is trying to connect");
 	socket.on("clientConnection", function (clientid, callback) {
 		console.log("\r\nClient "+clientid+" has connected! \r\n");
 		// Incrememnt the client counter
@@ -96,6 +95,10 @@ io.sockets.on('connection', function (socket) {
 		// Once data loaded, etc. respond to client
 		callback("CONNECTED");
     });
+	socket.on("EMERGEClient", function(clientid) {
+		console.log("\r\nClient "+clientid+" has connected!\r\n");
+		_CLIENTCOUNTER++;
+	});
 	/* Request Handlers */
 	socket.on(REQUEST_COLUMN_LENGTH, function(message, callback) {
 		var clength = DataSetObject.TotalMaxColumns();
@@ -134,7 +137,7 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllColumnValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		//socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.DataWindow())});
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow()}));
 	});
 	
 	socket.on(ROW_SWAP, function (message) {
