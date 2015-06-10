@@ -38,6 +38,8 @@ var _Y_SCROLLINDEX		= 0;
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
+var DATAMAX_LIMITER		= 0.8;
+var DATAMIN_LIMITER		= 0.2;
 
 // Socket function variables - Listener variables
 var DEBUG_DATA 				= "DEBUG_DATA"; // listens for data during debug mode : typically simplified data format
@@ -123,10 +125,8 @@ io.sockets.on('connection', function (socket) {
 	socket.on(COL_SWAP, function (message) {
 		var colstoswap = JSON.parse(message);
 		swapCol(colstoswap.column_1, colstoswap.column_2);
-		// Broadcast update
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		//var JSON_STRING = JSONify(DataSetObject.DataWindow, 
-		//socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.DataWindow())});
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLX, function(message, callback) {
 		var params = JSON.parse(message);
@@ -137,16 +137,14 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllColumnValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow()}));
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
 	});
 	
 	socket.on(ROW_SWAP, function (message) {
 		var rowstoswap = JSON.parse(message);
 		swapRow(rowstoswap.row_1, rowstoswap.row_2);
-		// Broadcast update
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		//console.log(DataSetObject.getColors());
-		//socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.DataWindow())});
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLY, function(message, callback) {
 		var params = JSON.parse(message);
@@ -157,7 +155,7 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllRowValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		//socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.DataWindow())});
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
 	});
 	/* End Action Handlers */
 			
@@ -250,9 +248,15 @@ function DataSetObject(csvfile, xmlfile) {
 	// Set all column values, e.g. if columns are reorganized by user
 	this.setAllColumnValues = function(data) { allCols = data; }
 	// Maximum value of the entire dataset
-	this.DataMaxValue = function() { return this.AllDataVals().reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);	}
+	this.DataMaxValue = function() { 
+		var max = this.AllDataVals().reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);	
+		return max*DATAMAX_LIMITER;
+	}
 	// Minimum value of the entire dataset
-	this.DataMinValue = function() { return this.AllDataVals().reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	}
+	this.DataMinValue = function() { 
+		var min = this.AllDataVals().reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
+		return min*DATAMIN_LIMITER;
+	}
 	// Maximum number of rows in the entire dataset
 	this.TotalMaxRows = function() { return _CSVDATA.length-1;	}
 	// Minimum number of rows in the entire dataset
