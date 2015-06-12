@@ -34,6 +34,7 @@ var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
+var _ANIMATION_TIME		= 0;
 
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
@@ -57,32 +58,23 @@ var ROW_SWAP					= "ROW_SWAP";
 var UPDATE_DATASET_SCROLLX		= "UPDATE_DATASET_SCROLLX";
 var UPDATE_DATASET_SCROLLY		= "UPDATE_DATASET_SCROLLY";
 
-// Socket function variables - Broadcast variables
+// Socket function variables - Broadcast variables.
 var DATASET_WINDOW_UPDATE	= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
 
 
-// Websocket variables
+// Websocket variables.
 var port			= 8383;
 var app 			= io = require('socket.io').listen(app);
-// Listen on specified port
+
+// Listen on specified port.
 app.listen(port);
+
+// Server start-up information.
 console.log("\r\nNode.js Server for EMERGE");
-console.log("Listening on port: "+port+"\r\n");
-
-
-
-
-
-
-/** Make into some nice JSON. */
-function JSONify(data, min, max) {
-	return JSON.stringify({
-		data:data,
-		minz:min,
-		maxz:max
-	});
-}
-
+console.log("Listening on port: "+port);
+require('dns').lookup(require('os').hostname(), function (err, add, fam) {
+  console.log('Local IP Address: '+add+"\r\n");
+})
 
 
 
@@ -93,15 +85,18 @@ io.sockets.on('connection', function (socket) {
 		console.log("\r\nClient "+clientid+" has connected! \r\n");
 		// Incrememnt the client counter
 		_CLIENTCOUNTER++;
-		updateGlobalDataSet();
 		// Once data loaded, etc. respond to client
 		callback("CONNECTED");
     });
 	socket.on("EMERGEClient", function(clientid) {
 		console.log("\r\nClient "+clientid+" has connected!\r\n");
 		_CLIENTCOUNTER++;
-		//socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
 	});
+	
+	socket.on(DATASET_WINDOW_UPDATE, function() {
+		socket.emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+	});
+	
 	/* Request Handlers */
 	socket.on(REQUEST_COLUMN_LENGTH, function(message, callback) {
 		var clength = DataSetObject.TotalMaxColumns();
@@ -127,7 +122,7 @@ io.sockets.on('connection', function (socket) {
 		var colstoswap = JSON.parse(message);
 		swapCol(colstoswap.column_1, colstoswap.column_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLX, function(message, callback) {
 		var params = JSON.parse(message);
@@ -138,14 +133,14 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllColumnValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	
 	socket.on(ROW_SWAP, function (message) {
 		var rowstoswap = JSON.parse(message);
 		swapRow(rowstoswap.row_1, rowstoswap.row_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLY, function(message, callback) {
 		var params = JSON.parse(message);
@@ -156,7 +151,7 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllRowValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", JSON.stringify({data : DataSetObject.getDataWindow(), rowcolors : DataSetObject.getColors(), minz : DataSetObject.DataMinValue(), maxz : DataSetObject.DataMaxValue()}));
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	/* End Action Handlers */
 			
@@ -167,11 +162,16 @@ io.sockets.on('connection', function (socket) {
 	// Sometimes called when client hasn't actualled disconnected - need to check this
 	socket.on("disconnect", function(message) {
 		_CLIENTCOUNTER--;
-		if(_CLIENTCOUNTER == 0) { resetAll(); }
+		if(_CLIENTCOUNTER == 0) { } // Normally a reset function, but sometimes disconnect randomly fires
 		console.log("A client has disconnected. Number of clients remaining: "+_CLIENTCOUNTER);
 	});
 	socket.on(RESET_ALL, function(message) {
-		if(message == "RESET_ALL") { resetAll(); }
+		// REDO THIS BIT TO DIFFERENT TYPES OF RESET, i.e. data reset, annotation reset, etc. etc.
+		if(message == "RESET_ALL") { 
+			//resetAll(); 
+		}
+		console.log(message + " has requested a Reset.");
+		socket.broadcast.emit("RESET", "RESET DATA");
 	});
 	// Debug handler
 	socket.on(DEBUG_DATA, function(message) {
@@ -393,6 +393,19 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 
 
 /* General Functions */
+
+/** Set options for sending JSON data string, and return the JSON string. */
+function sendBigJSONdata(params) {
+	var JSONString = "{}";
+	var JSON_Object = JSON.parse(JSONString);
+	if(params.dataset == true) { JSON_Object['data'] = DataSetObject.getDataWindow(); }
+	if(params.rowcolors == true) { JSON_Object['rowcolors'] = DataSetObject.getColors(); }
+	if(params.minz == true) { JSON_Object["minz"] = DataSetObject.DataMinValue(); }
+	if(params.maxz == true) { JSON_Object["maxz"] = DataSetObject.DataMaxValue(); }
+	if(params.animationTime == true) { JSON_Object["animTime"] = _ANIMATION_TIME; }
+	JSONString = JSON.stringify(JSON_Object);
+	return JSONString;
+}
 
 /** Make the DEBUG values legible */
 function parseDebugMessage(message) {

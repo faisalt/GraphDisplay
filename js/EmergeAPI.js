@@ -90,9 +90,12 @@ var EmergeInterface = Class.extend({
 		if(feature.reload == true) {
 			console.log("reload widget");
 			//Add reload button
-			$('body').append('<div id="leftfunctions"><input type="image" onclick="location.reload();" id="refresh" src="images/reload.png"></input></div>');
+			$('body').append('<div id="leftfunctions"><input type="image" onclick="" id="refresh" src="images/reload.png"></input></div>');
 			
 			//On click, send comms message
+			$('input#refresh').on('click', function() {
+				comms.emit("RESET_ALL", _CLIENT);
+			});
 			//comms.emit("ACTION_RELOAD", _CLIENT);
 		}
 		if(feature.undo == true) {
