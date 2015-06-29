@@ -1,5 +1,5 @@
 /*
-* Central server for the EMERGE system.
+* Central application server for the EMERGE system.
 * Handles communication between various clients, e.g. interface panels and the EMERGE application.
 * Updates dataset, informs about interactions, stores state variables.
 *
@@ -8,12 +8,15 @@
 
 
 /*
+*
 * TO DO;
-* - sort out sending stuff to graph application (C# app)
-* - sort out what happens if other panels are added
+* - Sort out what happens if other panels are added (e.g. data reset handling)
 * - ASSIGN IDs TO ROWS AND COLUMNS FOR TRACKING EVENTS:
 * 		- reset individual panels while preserving the row orders, etc. of the other.
 * 		- UNDO/REDO functionality: store state (store indices rather than actual dataset).
+* - Make data values into data objects so they have properties like id, annotated, and filtered.
+*
+* NOTE: In C#, dataobject accessed using following example syntax - parsedData["data"][x][y]["val"];
 */
 
 
@@ -75,7 +78,6 @@ console.log("Listening on port: "+port);
 require('dns').lookup(require('os').hostname(), function (err, add, fam) {
   console.log('Local IP Address: '+add+"\r\n");
 })
-
 
 
 
@@ -182,10 +184,6 @@ io.sockets.on('connection', function (socket) {
 
 
 
-
-
-
-
 /** DataIndex objects to track the x and y position during navigation (scrolling). */
 function DataIndex() {
 	var scrollindex_x = 0, scrollindex_y = 0;
@@ -196,8 +194,21 @@ function DataIndex() {
 	this.resetXScrollIndex = function() { scrollindex_x = 0; }
 	this.resetYScrollIndex = function() { scrollindex_y = 0; }
 }
+
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
 function DataSetObject(csvfile, xmlfile) {
+	
+	// Each data value as an object with properties.
+	var dataValObject = function(id, val, x, y) {
+		this.id=id;
+		this.x=x; // X coordinate in the grid
+		this.y=y; // Y coordinate in the grid
+		this.val=val; // The actual value
+		this.annotated=false; // Whether user has annotated a datapoint (e.g. pulled a bar)
+		this.filtered=false; // Whether this datapoint has been filtered out (i.e. hidden)
+		this.init = function() { }
+	}
+	
 	// Get data from the CSV file
 	var _CSVDATA = readCSVFile(csvfile);
 	// Get metadata of the CSV file - i.e. colours
@@ -214,15 +225,20 @@ function DataSetObject(csvfile, xmlfile) {
 	var allCols = [];
 	for(var col=1;col<maxcols; col++) { allCols.push(_CSVDATA[0][col]); }
 	
-	var allData=[];
+	var allData=[];	var allDataObjects=[]; var count = 0;
 	for(var row=1; row<maxrows+1; row++) {
 		var temp_data=[];
+		var temp_data_object=[];
 		allData.push(temp_data);
+		allDataObjects.push(temp_data_object);
 		for(var col=1;col<maxcols; col++) {
 			temp_data.push(_CSVDATA[row][col]);
+			var dataobj = new dataValObject(count, _CSVDATA[row][col], row-1, col-1);
+			temp_data_object.push(dataobj);
+			count++;
 		}
 	}
-	
+		
 	var max = allData.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
 	var min = allData.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
 	
@@ -236,109 +252,69 @@ function DataSetObject(csvfile, xmlfile) {
 			var data_row = [];
 			datawindow.push(data_row);
 			for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-				data_row.push(data[row][col] );
+				data_row.push(data[row][col]);
 			}
 		}
 		return datawindow;
 	}
 	// Get all the values of the dataset
-	this.AllDataVals = function() {	return allData;	}
-	this.setAllDataVals = function(data) { allData = data; }
-	// Get all the row values of the dataset
+	this.AllDataVals = function() {	return allDataObjects;	}
+	this.setAllDataVals = function(data) { 	allDataObjects = data; }
+	// Get all the row values of the dataset.
 	this.AllRowValues = function() { return allRows; }
-	// Set all row values, e.g. if rows have been reorganized by user
+	// Set all row values, e.g. if rows have been reorganized by user.
 	this.setAllRowValues = function(data) { allRows = data;	}
-	// Get all the column values of the dataset
+	// Get all the column values of the dataset.
 	this.AllColumnValues = function() {	return allCols;	}
-	// Set all column values, e.g. if columns are reorganized by user
+	// Set all column values, e.g. if columns are reorganized by user.
 	this.setAllColumnValues = function(data) { allCols = data; }
-	// Maximum value of the entire dataset
+	// Maximum value of the entire dataset.
 	this.DataMaxValue = function() { 		
 		return (max + ((max-min) * DATAMAX_LIMITER));
 	}
-	// Minimum value of the entire dataset
+	// Minimum value of the entire dataset.
 	this.DataMinValue = function() { 
 		return (min - (min * DATAMIN_LIMITER));
 	}
-	// Maximum number of rows in the entire dataset
+	// Maximum number of rows in the entire dataset.
 	this.TotalMaxRows = function() { return _CSVDATA.length-1;	}
-	// Minimum number of rows in the entire dataset
+	// Minimum number of rows in the entire dataset.
 	this.TotalMaxColumns = function() { return _CSVDATA[0].length;	}
-	// Set the row colours, e.g. when user reorganizes columns/rows
+	// Set the row colours, e.g. when user reorganizes columns/rows.
 	this.setColors = function(colors) { _ROWCOLORS = colors; }
-	// Get the row colours
+	// Get the row colours.
 	this.getColors = function() { return _ROWCOLORS; }
 	this.resetData = function() {
 		DATA_INDEX.resetXScrollIndex();	DATA_INDEX.resetYScrollIndex();
-		// reset rows and columns
-		allRows = []; allCols = []; allData=[];
+		allRows = []; allCols = []; allData=[]; allDataObjects=[]; count=0;
+		
 		for(var row=1; row<maxrows+1; row++) { allRows.push(_CSVDATA[row][0]); }
 		for(var col=1;col<maxcols; col++) { allCols.push(_CSVDATA[0][col]); }		
+		
 		for(var row=1; row<maxrows+1; row++) {
-			var temp_data=[]; allData.push(temp_data);
+			var temp_data=[]; var temp_data_object=[]; 
+			allData.push(temp_data); allDataObjects.push(temp_data_object);
 			for(var col=1;col<maxcols; col++) { 
 				temp_data.push(_CSVDATA[row][col]); 
+				var dataobj = new dataValObject(count, _CSVDATA[row][col], row-1, col-1);
+				temp_data_object.push(dataobj);	count++;
 			}
 		}
 	}
-	this.resetColumnData = function() {
-	
-	}
-	this.resetRowData = function() {
-
-	}
-}
-/*  End dataset parsing functions  */
-
-/** Dataset parsing functions: extract dataset, row values, column values, etc. */
-function readCSVFile(file) {
-	var rawFile = new XMLHttpRequest();
-	var allText="";
-	rawFile.open("GET", file, false);
-	rawFile.onreadystatechange = function () {
-		if(rawFile.readyState === 4) {
-			if(rawFile.status === 200 || rawFile.status == 0) { allText = rawFile.responseText;	}
-		}
-	}
-	rawFile.send(null);
-	var lines = allText.split(/\r|\r?\n/g);
-	for (var line in lines) { lines[line] = lines[line].split(","); }
-	return lines;
+	// Functions below need a reference table.
+	this.resetColumnData = function() {	}
+	this.resetRowData = function() { }
 }
 
-function readMetaData_XML(file) {
-	var rawFile = new XMLHttpRequest();
-	var allText="";
-	rawFile.open("GET", file, false);
-	rawFile.onreadystatechange = function () {
-		if(rawFile.readyState === 4) {
-			if(rawFile.status === 200 || rawFile.status == 0) { allText = rawFile.responseText;	}
-		}
-	}
-	rawFile.send(null);
-	var parseString = require('xml2js').parseString;
-	var colors="";
-	parseString(allText, function(err, result) {
-		colors = result['dataInfo']['colorCoding'][0].palette[0].color;
-	});
-	var rows=[];
-	for(var i=0; i<colors.length; i++) {
-		rows.push({ r : colors[i].$.r, g : colors[i].$.g, b : colors[i].$.b });
-	}
-	return rows;
-}
 
 
 
 /* Data Navigation Functions: Handle data scrolling on the x and y axis */
-
 /** Increment/decrement X axis index. */
 function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); }
 /** Increment/decrement Y axis index. */
 function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); }
-
 /* End Data Navigation Functions */
-
 
 
 
@@ -384,17 +360,55 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		swap(data, rc1, rc2); //_CHECK if definitely should be using swap 
 		DataSetObject.setAllRowValues(rows);
 	}
-	// this should be updating the entire dataset (kept separate from datawindow)
+	// This should be updating the entire dataset (kept separate from datawindow)
 	DataSetObject.setAllDataVals(data); 
 }
 /* End Data Organization functions*/
 
 
 
+/* DataSet parsing functions: extract dataset, row values, column values, etc. */
+/** Read values from a CSV file. */
+function readCSVFile(file) {
+	var rawFile = new XMLHttpRequest();
+	var allText="";
+	rawFile.open("GET", file, false);
+	rawFile.onreadystatechange = function () {
+		if(rawFile.readyState === 4) {
+			if(rawFile.status === 200 || rawFile.status == 0) { allText = rawFile.responseText;	}
+		}
+	}
+	rawFile.send(null);
+	var lines = allText.split(/\r|\r?\n/g);
+	for (var line in lines) { lines[line] = lines[line].split(","); }
+	return lines;
+}
+/** Read the metadata file associated with the CSV file. */
+function readMetaData_XML(file) {
+	var rawFile = new XMLHttpRequest();
+	var allText="";
+	rawFile.open("GET", file, false);
+	rawFile.onreadystatechange = function () {
+		if(rawFile.readyState === 4) {
+			if(rawFile.status === 200 || rawFile.status == 0) { allText = rawFile.responseText;	}
+		}
+	}
+	rawFile.send(null);
+	var parseString = require('xml2js').parseString;
+	var colors="";
+	parseString(allText, function(err, result) {
+		colors = result['dataInfo']['colorCoding'][0].palette[0].color;
+	});
+	var rows=[];
+	for(var i=0; i<colors.length; i++) {
+		rows.push({ r : colors[i].$.r, g : colors[i].$.g, b : colors[i].$.b });
+	}
+	return rows;
+}
+/* End DataSet parsing functions */
 
 /* General Functions */
-
-/** Set options for sending JSON data string, and return the JSON string. */
+/** Set options for sending JSON data string, and return the JSON string. This is to be sent to the EMERGE application. */
 function sendBigJSONdata(params) {
 	var JSONString = "{}";
 	var JSON_Object = JSON.parse(JSONString);
@@ -414,7 +428,7 @@ function parseDebugMessage(message) {
 	var str="";
 	for(var i=0; i<parseddata.length; i++) {
 		for(var j=0; j<parseddata[i].length; j++) {
-			str += (j==(parseddata[i].length - 1)) ? parseddata[i][j] : parseddata[i][j] + ", ";
+			str += (j==(parseddata[i].length - 1)) ? parseddata[i][j].val : parseddata[i][j].val + ", ";
 		}
 		console.log("Row "+i+" : " + str); str="";
 	}

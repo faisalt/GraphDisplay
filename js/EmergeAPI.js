@@ -8,7 +8,8 @@
  /*
  * TO DO:
  * - On loading - make one call to server to get data information for rendering the interface, then on callback, do the rest of the stuff
- * - Add a *functions* function, which does things like undo, redo, etc.
+ * - Add a *widget* function, which does things like undo, redo, reset, etc.
+ * - Rather than having lowerpanel and leftpanel interfaces - change this to X_Interface(POSITION), Y_Interface(POSITION) where position is left/right, top/bottom
  */
  
 (function(){var e=false,t=/xyz/.test(function(){xyz})?/\b_super\b/:/.*/;this.Class=function(){};Class.extend=function(n){function o(){if(!e&&this.init)this.init.apply(this,arguments)}var r=this.prototype;e=true;var i=new this;e=false;for(var s in n){i[s]=typeof n[s]=="function"&&typeof r[s]=="function"&&t.test(n[s])?function(e,t){return function(){var n=this._super;this._super=r[e];var i=t.apply(this,arguments);this._super=n;return i}}(s,n[s]):n[s]}o.prototype=i;o.prototype.constructor=o;o.extend=arguments.callee;return o}})()
