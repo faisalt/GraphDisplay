@@ -61,6 +61,9 @@ var ROW_SWAP					= "ROW_SWAP";
 var UPDATE_DATASET_SCROLLX		= "UPDATE_DATASET_SCROLLX";
 var UPDATE_DATASET_SCROLLY		= "UPDATE_DATASET_SCROLLY";
 
+var SET_ANNOTATED				= "SET_ANNOTATED";
+var SET_FILTERED				= "SET_FILTERED";
+
 // Socket function variables - Broadcast variables.
 var DATASET_WINDOW_UPDATE	= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
 
@@ -154,6 +157,16 @@ io.sockets.on('connection', function (socket) {
 		callback(JSON.stringify(DataSetObject.AllRowValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+	});
+	socket.on(SET_ANNOTATED, function(data) {
+		// Requires datapoint indices.
+		var indices = JSON.parse(data);
+		console.log(indices);
+	});
+	socket.on(SET_FILTERED, function(data) {
+		// Requires filtered rows, and bounding values, i.e. scroll positions.
+		var filtered_rows = JSON.parse(data);
+		console.log(filtered_rows);
 	});
 	/* End Action Handlers */
 			
