@@ -80,7 +80,7 @@ console.log("\r\nNode.js Server for EMERGE");
 console.log("Listening on port: "+port);
 require('dns').lookup(require('os').hostname(), function (err, add, fam) {
   console.log('Local IP Address: '+add+"\r\n");
-})
+});
 
 
 
@@ -160,11 +160,13 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on(SET_ANNOTATED, function(data) {
 		// Requires datapoint indices.
+		// Take into account xscroll index and yscroll index
 		var indices = JSON.parse(data);
 		console.log(indices);
 	});
 	socket.on(SET_FILTERED, function(data) {
 		// Requires filtered rows, and bounding values, i.e. scroll positions.
+		// Take into account xscroll index and yscroll index
 		var filtered_rows = JSON.parse(data);
 		console.log(filtered_rows);
 	});
@@ -193,7 +195,6 @@ io.sockets.on('connection', function (socket) {
 		parseDebugMessage(message);
 	});
 });
-
 
 
 
@@ -272,7 +273,7 @@ function DataSetObject(csvfile, xmlfile) {
 	}
 	// Get all the values of the dataset
 	this.AllDataVals = function() {	return allDataObjects;	}
-	this.setAllDataVals = function(data) { 	allDataObjects = data; }
+	this.setAllDataVals = function(data) { 	allData = data; }
 	// Get all the row values of the dataset.
 	this.AllRowValues = function() { return allRows; }
 	// Set all row values, e.g. if rows have been reorganized by user.
@@ -318,7 +319,6 @@ function DataSetObject(csvfile, xmlfile) {
 	this.resetColumnData = function() {	}
 	this.resetRowData = function() { }
 }
-
 
 
 
@@ -430,6 +430,8 @@ function sendBigJSONdata(params) {
 	if(params.minz == true) { JSON_Object["minz"] = DataSetObject.DataMinValue(); }
 	if(params.maxz == true) { JSON_Object["maxz"] = DataSetObject.DataMaxValue(); }
 	if(params.animationTime == true) { JSON_Object["animTime"] = _ANIMATION_TIME; }
+	//if(params.xindex == true) { JSON_Object["xindex"] = DATA_INDEX.getXScrollIndex(); }
+	//if(params.yindex == true) { JSON_Object["yindex"] = DATA_INDEX.getYScrollIndex(); }
 	JSONString = JSON.stringify(JSON_Object);
 	return JSONString;
 }

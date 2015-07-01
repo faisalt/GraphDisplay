@@ -131,6 +131,8 @@ var LowerPanelInterface = EmergeInterface.extend({
 	generateColumnLabels : function(settings) {
 		// Reference element the axis go into.
 		var root = $("body").find("#loweraxis");
+		// In case of a disconnect / reconnect event, don't want to add the UI elements more than once, so empty the div if stuff is in there
+		if($("body").find("#loweraxis").children().length > 0) { $("body").find("#loweraxis").empty(); }
 		// X Axis - or axis on the lower end of the graph
 		for (var i = 0; i < X_LIMIT; ++i) {
 			$("<div>").appendTo(root)
@@ -270,8 +272,9 @@ var LowerPanelInterface = EmergeInterface.extend({
 				setTimeout(scrollAnimate, 500);
 			}
 		}
+		if($('body').find("#lowernavigationfunctions").children().length > 0) { $('body').find("#lowernavigationfunctions").empty(); }
+		$('body').find("#lowernavigationfunctions").append('<img id="leftarrow" src="images/leftarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="rightarrow" src="images/rightarrow.png"></div>');
 		
-		$('body').append('<img id="leftarrow" src="images/leftarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="rightarrow" src="images/rightarrow.png"></div>');
 		var hscroll_size = (windowsize / _COLLENGTH)*100;
 		if(hscroll_size < 5) hscroll_size=5;
 		LOWERSCROLLNUB = Math.round(hscroll_size);
@@ -339,6 +342,7 @@ var LeftPanelInterface = EmergeInterface.extend({
 	generateRowLabels : function(settings) {
 		// Reference element the axis go into.
 		var root = $("body").find("#leftaxis");
+		if($("body").find("#leftaxis").children().length > 0) { $("body").find("#leftaxis").empty(); }
 		// Y Axis - or axis on the left hand side of the graph
 		for (var i = Y_LIMIT-1; i > -1; --i) {
 			$("<div>").appendTo(root)
@@ -479,8 +483,8 @@ var LeftPanelInterface = EmergeInterface.extend({
 				setTimeout(scrollAnimate, 500);
 			} 
 		}
-		
-		$('body').append('<img id="uparrow" src="images/arrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/arrowdn.png"></img>');
+		if($('body').find("#leftnavigationfunctions").children().length > 0) { $('body').find("#leftnavigationfunctions").empty(); }
+		$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/arrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/arrowdn.png"></img>');
 		
 		var limiter=1; //look and feel purposes
 		var vscroll_size = (windowsize / _ROWLENGTH)*100;
