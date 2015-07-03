@@ -65,7 +65,8 @@ var SET_ANNOTATED				= "SET_ANNOTATED";
 var SET_FILTERED				= "SET_FILTERED";
 
 // Socket function variables - Broadcast variables.
-var DATASET_WINDOW_UPDATE	= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
+var DATASET_WINDOW_UPDATE		= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
+var DATASET_WINDOW_UPDATE_LIMITED = "DATASET_WINDOW_UPDATE_LIMITED";
 
 
 // Websocket variables.
@@ -83,6 +84,9 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 });
 
 
+
+//DELETE
+parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 // Handle incoming requests from clients on connection
 io.sockets.on('connection', function (socket) {
@@ -160,9 +164,14 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on(SET_ANNOTATED, function(data) {
 		// Requires datapoint indices.
-		// Take into account xscroll index and yscroll index
-		var indices = JSON.parse(data);
-		console.log(indices);
+		// Take into account xscroll index and yscroll index. IMPORTANT: ROWS are REVERSED! so need to handle this.
+		var annotated_coords = JSON.parse(data);
+		var annotated_row = reverseRowNumbers(annotated_coords["annotated_coordinate"][0]);
+		var annotated_col = annotated_coords["annotated_coordinate"][1];
+		annotateDataPoint(annotated_row, annotated_col);
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		//console.log("Row: " + annotated_row + ", Col: "+annotated_col);
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	socket.on(SET_FILTERED, function(data) {
 		// Requires filtered rows, and bounding values, i.e. scroll positions.
@@ -361,7 +370,7 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		var xindex = DATA_INDEX.getXScrollIndex();
 		rc1 = xindex+rc1; rc2 = xindex+rc2;
 		swap(cols, rc1, rc2);
-		swapInner(data, rc1, rc2);
+		data = swapInner(data, rc1, rc2);
 		DataSetObject.setAllColumnValues(cols);
 	}
 	// Update rows and dataset
@@ -370,13 +379,27 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		var yindex = DATA_INDEX.getYScrollIndex();
 		rc1 = yindex+rc1; rc2 = yindex+rc2;
 		swap(rows, rc1, rc2);
-		swap(data, rc1, rc2); //_CHECK if definitely should be using swap 
+		
+		// TODO the rows need reversing, otherwise, problems!!
+		
+		data = swap(data, rc1, rc2); //_CHECK if definitely should be using swap 
 		DataSetObject.setAllRowValues(rows);
 	}
 	// This should be updating the entire dataset (kept separate from datawindow)
 	DataSetObject.setAllDataVals(data); 
 }
-/* End Data Organization functions*/
+/* End Data Organization Functions */
+
+
+/* Data Annotation functions */
+function annotateDataPoint(row, col) {
+	var data = DataSetObject.AllDataVals();
+	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
+	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	data[parseInt(row+yindex)][parseInt(col+xindex)].annotated = true;
+	DataSetObject.setAllDataVals(data);
+}
+/* End Data Annotation Functions */
 
 
 
@@ -430,8 +453,6 @@ function sendBigJSONdata(params) {
 	if(params.minz == true) { JSON_Object["minz"] = DataSetObject.DataMinValue(); }
 	if(params.maxz == true) { JSON_Object["maxz"] = DataSetObject.DataMaxValue(); }
 	if(params.animationTime == true) { JSON_Object["animTime"] = _ANIMATION_TIME; }
-	//if(params.xindex == true) { JSON_Object["xindex"] = DATA_INDEX.getXScrollIndex(); }
-	//if(params.yindex == true) { JSON_Object["yindex"] = DATA_INDEX.getYScrollIndex(); }
 	JSONString = JSON.stringify(JSON_Object);
 	return JSONString;
 }
@@ -464,6 +485,10 @@ function emptyBlock() {
 		for (var col = 0; col < _NUMCOLS; ++col){ data_row.push( 0.0 );	}
 	}
 	return data;
+}
+/** Reverse the row numbers. */
+function reverseRowNumbers(rownum) {
+	return (_NUMROWS-1) - rownum;
 }
 /** Keep a number within a given range. */
 Number.prototype.clamp = function(min, max) { return Math.min(Math.max(this, min), max); };
