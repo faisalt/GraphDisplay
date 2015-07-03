@@ -353,6 +353,9 @@ var LeftPanelInterface = EmergeInterface.extend({
 				.data("axis", "y").data("idx", i)
 				.append($("<div>").addClass("dropzone_y"))
 		}
+		// Reverse the labels to align with the actual graph
+		var ul = $('#leftaxis');
+		ul.children().each(function(i,li){ul.prepend(li)})
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
 		
