@@ -38,6 +38,7 @@ var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
 var _ANIMATION_TIME		= 0;
+var DATACOMPARISON_MODE = false;
 
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
@@ -85,8 +86,16 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 
 
 
-//DELETE
+// DELETE
+/*
+var rowcomparison_array = new Array();
+rowcomparison_array.push(3);
+rowcomparison_array.push(5);
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+filterCompare();
+parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+*/
+
 
 // Handle incoming requests from clients on connection
 io.sockets.on('connection', function (socket) {
@@ -166,7 +175,7 @@ io.sockets.on('connection', function (socket) {
 		// Requires datapoint indices.
 		// Take into account xscroll index and yscroll index. IMPORTANT: ROWS are REVERSED! so need to handle this.
 		var annotated_coords = JSON.parse(data);
-		var annotated_row = reverseRowNumbers(annotated_coords["annotated_coordinate"][0]);
+		var annotated_row = annotated_coords["annotated_coordinate"][0];
 		var annotated_col = annotated_coords["annotated_coordinate"][1];
 		annotateDataPoint(annotated_row, annotated_col);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
@@ -176,8 +185,12 @@ io.sockets.on('connection', function (socket) {
 	socket.on(SET_FILTERED, function(data) {
 		// Requires filtered rows, and bounding values, i.e. scroll positions.
 		// Take into account xscroll index and yscroll index
-		var filtered_rows = JSON.parse(data);
-		console.log(filtered_rows);
+		var filtered_coords = JSON.parse(data);
+		var filtered_row = filtered_coords["filtered_coordinate"][0];
+		var filtered_col = filtered_coords["filtered_coordinate"][1];
+		filterDataPoint(filtered_row, filtered_col);
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	/* End Action Handlers */
 			
@@ -402,6 +415,101 @@ function annotateDataPoint(row, col) {
 /* End Data Annotation Functions */
 
 
+/* Data Filtering functions */
+
+var PRESS_COMPARE_COUNTER = 0;
+var COMPARE_TIMER_STARTED = false;
+var COMPARE_TIME_1 = 0;
+var COMPARE_TIME_2 = 0;
+var FILTER_COMPARISON_INTERVAL = 1000;
+var rowcomparison_array = Array();
+
+function filterDataPoint(row, col) {
+	var data = DataSetObject.AllDataVals();
+	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
+	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	
+	if(row == 0 || row == 9) {
+		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
+		PRESS_COMPARE_COUNTER++;
+		rowcomparison_array.push(col);
+		if(COMPARE_TIMER_STARTED == false) {
+			COMPARE_TIME_1 = timestamp();
+			beginCompareTimer();
+		}
+	}
+	else if(col == 0 || col == 9) {
+		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
+		PRESS_COMPARE_COUNTER++;
+	}
+	else {
+		DATACOMPARISON_MODE = false;
+	}
+	if(DATACOMPARISON_MODE == false) {
+		data[parseInt(row+yindex)][parseInt(col+xindex)].filtered = true;
+	} else {
+	}
+	DataSetObject.setAllDataVals(data);
+}
+
+
+function filterCompare() {
+	console.log(rowcomparison_array.length);
+	console.log(rowcomparison_array[0] + ", " + rowcomparison_array[1]);
+	var data = DataSetObject.AllDataVals();
+	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
+	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	/*
+	for(var i=0; i<_NUMROWS; i++) {
+		for(var j=0; j<_NUMCOLS; j++) {
+			if(! data[parseInt(i+yindex)][parseInt(rowcomparison_array[0]+xindex)] && ! data[parseInt(i+yindex)][parseInt(rowcomparison_array[1]+xindex)]) {
+				data[parseInt(i+yindex)][parseInt(j+xindex)].filtered = true;
+			}
+		}
+	}
+	*/
+	/*for(var i=0; i<_NUMCOLS; i++) {
+		//needs to be everything else other than these, set to true - if it's comparing two rows
+		data[parseInt(i+yindex)][parseInt(rowcomparison_array[0]+xindex)].filtered = true; 
+		data[parseInt(i+yindex)][parseInt(rowcomparison_array[1]+xindex)].filtered = true;
+	}*/
+	DataSetObject.setAllDataVals(data);
+	rowcomparison_array = Array();
+	// Need to notify graph somehow
+}
+
+function beginCompareTimer() {
+	
+	COMPARE_TIMER_STARTED = true;
+	COMPARE_TIME_2 = timestamp();
+	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
+		console.log("FILTER TO COMPARE!!!");
+		DATACOMPARISON_MODE = true;
+		COMPARE_TIMER_STARTED = false;
+		PRESS_COMPARE_COUNTER = 0;
+		COMPARE_TIME_2 = 0; COMPARE_TIME_1 = 0;
+		filterCompare();
+		return;
+	} else if((COMPARE_TIME_2 - COMPARE_TIME_1) > FILTER_COMPARISON_INTERVAL) {
+		console.log("DO NOT filter!!!");
+		DATACOMPARISON_MODE = false;
+		COMPARE_TIMER_STARTED = false;
+		PRESS_COMPARE_COUNTER = 0;
+		COMPARE_TIME_2 = 0; COMPARE_TIME_1 = 0;
+		rowcomparison_array = Array();
+		return;
+	}
+	setTimeout(beginCompareTimer, 50);
+}
+
+function comparisonInterval() {
+	
+	setTimeout(comparisonInterval, 1000);
+}
+
+
+/* End Data Filtering functions. */
+
 
 /* DataSet parsing functions: extract dataset, row values, column values, etc. */
 /** Read values from a CSV file. */
@@ -444,6 +552,11 @@ function readMetaData_XML(file) {
 /* End DataSet parsing functions */
 
 /* General Functions */
+/** Get current time in milliseconds. */
+function timestamp() {
+	var d = new Date();
+	return d.getTime();
+}
 /** Set options for sending JSON data string, and return the JSON string. This is to be sent to the EMERGE application. */
 function sendBigJSONdata(params) {
 	var JSONString = "{}";
@@ -464,7 +577,7 @@ function parseDebugMessage(message) {
 	var str="";
 	for(var i=0; i<parseddata.length; i++) {
 		for(var j=0; j<parseddata[i].length; j++) {
-			str += (j==(parseddata[i].length - 1)) ? parseddata[i][j].val : parseddata[i][j].val + ", ";
+			str += (j==(parseddata[i].length - 1)) ? parseddata[i][j].filtered : parseddata[i][j].filtered + ", ";
 		}
 		console.log("Row "+i+" : " + str); str="";
 	}

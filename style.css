@@ -35,15 +35,15 @@ input#refresh {
 }
 
 #datainfo {
-	margin-bottom:20px;
-	text-align:center;
+	/*margin-bottom:20px;
+	text-align:center;*/
 }
 
 span.title {
 	font-weight: bold;
 }
 
-.axis_label_left, .axis_label_lower {
+.axis_label_left {
 	padding:20px;
 	display:inline-block;
 	width:80%;
@@ -56,9 +56,28 @@ span.title {
 	z-index:2;
 	color:black;
 	/*Change below for display size and resolution*/
-	/*height:60px;
-	margin-bottom:25px;*/
+	height:50px;
+	margin-bottom:38px;
 }
+
+.axis_label_lower {
+	padding:20px;
+	display:inline-block;
+	width:80%;
+	border:1px solid lightgray;
+	margin-bottom:5px;
+	float:right;
+	text-align:right;
+	font-size:1.5em;
+	background-color:#FFFFC8;
+	z-index:2;
+	color:black;
+	/*Change below for display size and resolution*/
+	height:50px;
+	margin-bottom:38px;
+
+}
+
 
 .axis_label.drag-active_y, .axis_label.drag-active_x {
 	background-color:orange;
@@ -108,13 +127,14 @@ div#loweraxis {
 
 .control.axislabel.x {
 	float:left;
-	width:10%;
+	width:50px;
+	margin-right:79px;
 	height:100%;
 	position:relative;
 }
 .text.axis_label_lower {
 	float:left;
-	width:30%;
+	width:40px;
 	height:100%;
 	position:relative;
 }
@@ -126,12 +146,13 @@ div#loweraxis {
 	position:relative;
 }
 .dropzone_x {
-	float:left;
+	/*float:left;*/
 	width:30%;
 	height:100%;
 	position:relative;
 	z-index:-1;
-	left:-40px;
+	/*left:-40px;*/
+	left:10px;
 }
 
 /********** End lower panel styling ************/

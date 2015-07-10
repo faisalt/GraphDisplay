@@ -144,6 +144,9 @@ var LowerPanelInterface = EmergeInterface.extend({
 			.append($("<div>").addClass("dropzone_x"));
 			$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
 		}
+		
+		$("div#loweraxis").find("div#axislabel_x_9").css("margin-right", "0px");
+		
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
 		
@@ -353,9 +356,9 @@ var LeftPanelInterface = EmergeInterface.extend({
 				.data("axis", "y").data("idx", i)
 				.append($("<div>").addClass("dropzone_y"))
 		}
-		// Reverse the labels to align with the actual graph
-		var ul = $('#leftaxis');
-		ul.children().each(function(i,li){ul.prepend(li)})
+		
+		$("div#leftaxis").find("div#axislabel_y_0").children().css("margin-bottom", "0px");
+		
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
 		
