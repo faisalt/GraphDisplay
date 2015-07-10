@@ -442,26 +442,7 @@ function filterDataPoint(row, col) {
 	}
 	//DataSetObject.setAllDataVals(data);
 }
-/*
-DATA_INDEX.setXScrollIndex(1);
-var xindex = DATA_INDEX.getXScrollIndex();
-rowcomparison_array = Array();
-rowcomparison_array.push(2+xindex);
-rowcomparison_array.push(3+xindex);
-console.log(rowcomparison_array[0] + " <---");
-console.log("ok, doing the thing now");
-filterCompare();
 
-DATA_INDEX.setXScrollIndex(12);
-var xindex = DATA_INDEX.getXScrollIndex();
-rowcomparison_array = Array();
-rowcomparison_array.push(2+xindex);
-rowcomparison_array.push(3+xindex);
-console.log(rowcomparison_array[0] + " <---");
-console.log("ok, doing the thing now");
-filterCompare();
-
-*/
 function filterCompare() {
 	console.log("About to compare row " + rowcomparison_array[0] + " amd row "  + rowcomparison_array[1]);
 	if(rowcomparison_array[0] != rowcomparison_array[1]) {
@@ -471,9 +452,9 @@ function filterCompare() {
 		console.log(xindex + ", " + yindex);
 		
 		for(var i=0; i<_NUMROWS; i++) {
-			for(var j=0; j<_NUMCOLS; j++) {
+			for(var j=xindex; j<(_NUMCOLS+xindex); j++) {
 				if(j != parseInt(rowcomparison_array[0]) && j != parseInt(rowcomparison_array[1])) {
-					data[parseInt(i+yindex)][parseInt(j+xindex)].filtered = true;
+					data[parseInt(i)][parseInt(j)].filtered = true;
 				}
 			}
 		}

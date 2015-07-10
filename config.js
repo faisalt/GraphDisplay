@@ -10,8 +10,8 @@ var Y_LIMIT = 10;
 var X_LIMIT = 10;
 
 // Host reference
-var HOST = "148.88.227.244";
-//var HOST = "localhost";
+//var HOST = "148.88.227.244";
+var HOST = "localhost";
 
 // URL to datasets
 var DS_URL = "http://"+HOST+"/GraphDisplay/data/";
