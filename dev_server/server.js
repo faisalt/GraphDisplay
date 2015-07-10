@@ -43,8 +43,8 @@ var DATACOMPARISON_MODE = false;
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
-var DATAMAX_LIMITER		= 0.8;
-var DATAMIN_LIMITER		= 0.2;
+var DATAMAX_LIMITER		= 0.9;
+var DATAMIN_LIMITER		= 0.3;
 
 // Socket function variables - Listener variables
 var DEBUG_DATA 				= "DEBUG_DATA"; // listens for data during debug mode : typically simplified data format
@@ -83,18 +83,6 @@ console.log("Listening on port: "+port);
 require('dns').lookup(require('os').hostname(), function (err, add, fam) {
   console.log('Local IP Address: '+add+"\r\n");
 });
-
-
-
-// DELETE
-/*
-var rowcomparison_array = new Array();
-rowcomparison_array.push(3);
-rowcomparison_array.push(5);
-parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-filterCompare();
-parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-*/
 
 
 // Handle incoming requests from clients on connection
@@ -430,9 +418,10 @@ function filterDataPoint(row, col) {
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
 	
 	if(row == 0 || row == 9) {
+		DATACOMPARISON_MODE = true;
 		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
 		PRESS_COMPARE_COUNTER++;
-		rowcomparison_array.push(col);
+		rowcomparison_array.push(parseInt(col + xindex));
 		if(COMPARE_TIMER_STARTED == false) {
 			COMPARE_TIME_1 = timestamp();
 			beginCompareTimer();
@@ -440,46 +429,64 @@ function filterDataPoint(row, col) {
 	}
 	else if(col == 0 || col == 9) {
 		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
+		DATACOMPARISON_MODE= true;
 		PRESS_COMPARE_COUNTER++;
 	}
 	else {
 		DATACOMPARISON_MODE = false;
 	}
 	if(DATACOMPARISON_MODE == false) {
-		data[parseInt(row+yindex)][parseInt(col+xindex)].filtered = true;
+		// Individual data point needs to be filtered
+		//data[parseInt(row+yindex)][parseInt(col+xindex)].filtered = true;
 	} else {
 	}
-	DataSetObject.setAllDataVals(data);
+	//DataSetObject.setAllDataVals(data);
 }
+/*
+DATA_INDEX.setXScrollIndex(1);
+var xindex = DATA_INDEX.getXScrollIndex();
+rowcomparison_array = Array();
+rowcomparison_array.push(2+xindex);
+rowcomparison_array.push(3+xindex);
+console.log(rowcomparison_array[0] + " <---");
+console.log("ok, doing the thing now");
+filterCompare();
 
+DATA_INDEX.setXScrollIndex(12);
+var xindex = DATA_INDEX.getXScrollIndex();
+rowcomparison_array = Array();
+rowcomparison_array.push(2+xindex);
+rowcomparison_array.push(3+xindex);
+console.log(rowcomparison_array[0] + " <---");
+console.log("ok, doing the thing now");
+filterCompare();
 
+*/
 function filterCompare() {
-	console.log(rowcomparison_array.length);
-	console.log(rowcomparison_array[0] + ", " + rowcomparison_array[1]);
-	var data = DataSetObject.AllDataVals();
-	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
-	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
-	/*
-	for(var i=0; i<_NUMROWS; i++) {
-		for(var j=0; j<_NUMCOLS; j++) {
-			if(! data[parseInt(i+yindex)][parseInt(rowcomparison_array[0]+xindex)] && ! data[parseInt(i+yindex)][parseInt(rowcomparison_array[1]+xindex)]) {
-				data[parseInt(i+yindex)][parseInt(j+xindex)].filtered = true;
+	console.log("About to compare row " + rowcomparison_array[0] + " amd row "  + rowcomparison_array[1]);
+	if(rowcomparison_array[0] != rowcomparison_array[1]) {
+		var data = DataSetObject.AllDataVals();
+		var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
+		var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+		console.log(xindex + ", " + yindex);
+		
+		for(var i=0; i<_NUMROWS; i++) {
+			for(var j=0; j<_NUMCOLS; j++) {
+				if(j != parseInt(rowcomparison_array[0]) && j != parseInt(rowcomparison_array[1])) {
+					data[parseInt(i+yindex)][parseInt(j+xindex)].filtered = true;
+				}
 			}
 		}
+		
+		DataSetObject.setAllDataVals(data);
+		rowcomparison_array = Array();
 	}
-	*/
-	/*for(var i=0; i<_NUMCOLS; i++) {
-		//needs to be everything else other than these, set to true - if it's comparing two rows
-		data[parseInt(i+yindex)][parseInt(rowcomparison_array[0]+xindex)].filtered = true; 
-		data[parseInt(i+yindex)][parseInt(rowcomparison_array[1]+xindex)].filtered = true;
-	}*/
-	DataSetObject.setAllDataVals(data);
 	rowcomparison_array = Array();
+	parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 	// Need to notify graph somehow
 }
 
 function beginCompareTimer() {
-	
 	COMPARE_TIMER_STARTED = true;
 	COMPARE_TIME_2 = timestamp();
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
