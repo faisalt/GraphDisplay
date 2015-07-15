@@ -37,8 +37,15 @@ var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
-var _ANIMATION_TIME		= 0;
-var DATACOMPARISON_MODE = false;
+var _ANIMATION_TIME		= 50;
+
+// Variables for filtering
+var PRESS_COMPARE_COUNTER 			= 0;
+var COMPARE_TIMER_STARTED 			= false;
+var COMPARE_TIME_1 					= 0;
+var COMPARE_TIME_2 					= 0;
+var FILTER_COMPARISON_INTERVAL 		= 1000;
+var FILTER_COMPARISON_TIMER_TICK 	= 50;
 
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
@@ -176,6 +183,7 @@ io.sockets.on('connection', function (socket) {
 		var filtered_coords = JSON.parse(data);
 		var filtered_row = filtered_coords["filtered_coordinate"][0];
 		var filtered_col = filtered_coords["filtered_coordinate"][1];
+		console.log(filtered_row + ", " + filtered_col);
 		filterDataPoint(filtered_row, filtered_col);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
@@ -205,6 +213,7 @@ io.sockets.on('connection', function (socket) {
 		parseDebugMessage(message);
 	});
 });
+
 
 
 
@@ -403,14 +412,15 @@ function annotateDataPoint(row, col) {
 /* End Data Annotation Functions */
 
 
-/* Data Filtering functions */
 
-var PRESS_COMPARE_COUNTER = 0;
-var COMPARE_TIMER_STARTED = false;
-var COMPARE_TIME_1 = 0;
-var COMPARE_TIME_2 = 0;
-var FILTER_COMPARISON_INTERVAL = 1000;
+/* Data Filtering functions */
+/*
+* TO DO - some kind of efficient way of detecting duplicate values being sent by the graph (or handle this in the graph software).
+*/
 var rowcomparison_array = Array();
+var filterCoordinates = Array();
+
+
 
 function filterDataPoint(row, col) {
 	var data = DataSetObject.AllDataVals();
@@ -418,84 +428,97 @@ function filterDataPoint(row, col) {
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
 	
 	if(row == 0 || row == 9) {
-		DATACOMPARISON_MODE = true;
 		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
 		PRESS_COMPARE_COUNTER++;
 		rowcomparison_array.push(parseInt(col + xindex));
+		filterCoordinates.push(parseInt(row + yindex));
+		filterCoordinates.push(parseInt(col + xindex));
 		if(COMPARE_TIMER_STARTED == false) {
 			COMPARE_TIME_1 = timestamp();
-			beginCompareTimer();
+			beginCompareTimer("COMPARE_COL");
 		}
 	}
 	else if(col == 0 || col == 9) {
 		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
-		DATACOMPARISON_MODE= true;
 		PRESS_COMPARE_COUNTER++;
+		rowcomparison_array.push(parseInt(row + yindex));
+		filterCoordinates.push(parseInt(row + yindex));
+		filterCoordinates.push(parseInt(col + xindex));
+		if(COMPARE_TIMER_STARTED == false) {
+			COMPARE_TIME_1 = timestamp();
+			beginCompareTimer("COMPARE_ROW");
+		}
 	}
 	else {
-		DATACOMPARISON_MODE = false;
-	}
-	if(DATACOMPARISON_MODE == false) {
 		// Individual data point needs to be filtered
-		//data[parseInt(row+yindex)][parseInt(col+xindex)].filtered = true;
-	} else {
+		data[parseInt(row+yindex)][parseInt(col+xindex)].filtered = true;
+		DataSetObject.setAllDataVals(data);
 	}
-	//DataSetObject.setAllDataVals(data);
 }
 
-function filterCompare() {
-	console.log("About to compare row " + rowcomparison_array[0] + " amd row "  + rowcomparison_array[1]);
+function filterSingleDataPoint() {
+	var data = DataSetObject.AllDataVals();
+	data[filterCoordinates[0]][filterCoordinates[1]].filtered = true;
+	DataSetObject.setAllDataVals(data);
+	filterCoordinates = Array();
+}
+
+function filterCompare(mode) {
 	if(rowcomparison_array[0] != rowcomparison_array[1]) {
 		var data = DataSetObject.AllDataVals();
 		var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 		var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
-		console.log(xindex + ", " + yindex);
-		
-		for(var i=0; i<_NUMROWS; i++) {
-			for(var j=xindex; j<(_NUMCOLS+xindex); j++) {
-				if(j != parseInt(rowcomparison_array[0]) && j != parseInt(rowcomparison_array[1])) {
-					data[parseInt(i)][parseInt(j)].filtered = true;
+		if(mode == "COMPARE_COL") {
+			for(var i=yindex; i<(_NUMROWS+yindex); i++) {
+				for(var j=xindex; j<(_NUMCOLS+xindex); j++) {
+					if(j != rowcomparison_array[0] && j != rowcomparison_array[1]) {
+						data[i][j].filtered = true;
+					}
 				}
 			}
 		}
-		
+		else if(mode == "COMPARE_ROW") {
+			for(var i=yindex; i<(_NUMROWS+yindex); i++) {
+				if(i != rowcomparison_array[0] && i != rowcomparison_array[1]) {
+					for(var j=xindex; j<(_NUMCOLS+xindex); j++) {
+						data[i][j].filtered = true;
+					}
+				}
+			}
+		}
 		DataSetObject.setAllDataVals(data);
 		rowcomparison_array = Array();
 	}
 	rowcomparison_array = Array();
-	parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-	// Need to notify graph somehow
+	//parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 }
 
-function beginCompareTimer() {
+function beginCompareTimer(mode) {
 	COMPARE_TIMER_STARTED = true;
 	COMPARE_TIME_2 = timestamp();
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
+		// In filter compare mode - two bars have been pressed consecutively (or close enough).
 		console.log("FILTER TO COMPARE!!!");
-		DATACOMPARISON_MODE = true;
 		COMPARE_TIMER_STARTED = false;
 		PRESS_COMPARE_COUNTER = 0;
 		COMPARE_TIME_2 = 0; COMPARE_TIME_1 = 0;
-		filterCompare();
+		filterCoordinates = Array();
+		filterCompare(mode);
 		return;
 	} else if((COMPARE_TIME_2 - COMPARE_TIME_1) > FILTER_COMPARISON_INTERVAL) {
+		// Not in compare mode, filtering individual data point.
 		console.log("DO NOT filter!!!");
-		DATACOMPARISON_MODE = false;
 		COMPARE_TIMER_STARTED = false;
 		PRESS_COMPARE_COUNTER = 0;
 		COMPARE_TIME_2 = 0; COMPARE_TIME_1 = 0;
 		rowcomparison_array = Array();
+		filterSingleDataPoint();
 		return;
 	}
-	setTimeout(beginCompareTimer, 50);
+	setTimeout(function() {
+		beginCompareTimer(mode);
+	}, FILTER_COMPARISON_TIMER_TICK);
 }
-
-function comparisonInterval() {
-	
-	setTimeout(comparisonInterval, 1000);
-}
-
-
 /* End Data Filtering functions. */
 
 

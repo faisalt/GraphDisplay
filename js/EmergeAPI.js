@@ -272,7 +272,7 @@ var LowerPanelInterface = EmergeInterface.extend({
 				if (target_wCol != current_wCol) { current_wCol += dx; bMoved -= true; }
 				// Redraw and repeat.
 				redraw(current_wCol);
-				setTimeout(scrollAnimate, 500);
+				setTimeout(scrollAnimate, 150);
 			}
 		}
 		if($('body').find("#lowernavigationfunctions").children().length > 0) { $('body').find("#lowernavigationfunctions").empty(); }
@@ -486,7 +486,7 @@ var LeftPanelInterface = EmergeInterface.extend({
 				if (target_wRow != current_wRow) { current_wRow += dy; bMoved -= true;  }
 				// Redraw and repeat.
 				redraw(current_wRow);
-				setTimeout(scrollAnimate, 500);
+				setTimeout(scrollAnimate, 150);
 			} 
 		}
 		if($('body').find("#leftnavigationfunctions").children().length > 0) { $('body').find("#leftnavigationfunctions").empty(); }
