@@ -239,15 +239,14 @@ var LowerPanelInterface = EmergeInterface.extend({
 		}
 	},
 	/* Add navigation functionality, for going through datasets larger than the 10x10 grid on the EMERGE system. */
-	addScrollbarNavigation : function() {
+	addScrollbarNavigation : function(settings) {
 		var LOWERSCROLLNUB = 0;
 		/** Redraw the data set with a given window. */
 		var redraw = function(wcol) {
 			// Limit to 0 and len-windowsize.
 			wcol = wcol.clamp(0, _COLLENGTH - windowsize);
-			
 			// Push to the graph with explicit normalisation parameters.
-			comms.emit("UPDATE_DATASET_SCROLLX", JSON.stringify({ position:wcol, min_param: 0.2, max_param: 0.8, zixelspeed : 0}), function(data) {
+			comms.emit("UPDATE_DATASET_SCROLLX", JSON.stringify({position:wcol}), function(data) {
 				if(data != "") {
 					_ALLCOLS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
@@ -272,7 +271,7 @@ var LowerPanelInterface = EmergeInterface.extend({
 				if (target_wCol != current_wCol) { current_wCol += dx; bMoved -= true; }
 				// Redraw and repeat.
 				redraw(current_wCol);
-				setTimeout(scrollAnimate, 150);
+				setTimeout(scrollAnimate, settings.scroll_speed);
 			}
 		}
 		if($('body').find("#lowernavigationfunctions").children().length > 0) { $('body').find("#lowernavigationfunctions").empty(); }
@@ -281,6 +280,7 @@ var LowerPanelInterface = EmergeInterface.extend({
 		var hscroll_size = (windowsize / _COLLENGTH)*100;
 		if(hscroll_size < 5) hscroll_size=5;
 		LOWERSCROLLNUB = Math.round(hscroll_size);
+		
 		$("#hscroll .nub_x").css("width", LOWERSCROLLNUB+"%");
 		$("#hscroll .ghost_x").css("width", LOWERSCROLLNUB+"%");
 		
@@ -300,25 +300,26 @@ var LowerPanelInterface = EmergeInterface.extend({
 			// Update scrollbars.
 			that.find(".nub_x").css(xaxis ? "left" : "top", (percent * 100) + "%");
 			// Adjust the percentage relative to the window size.
-			target_wCol = Math.floor(_COLLENGTH * percent);
-			scrollAnimate();
+			target_wCol = Math.floor(_COLLENGTH * percent);			
 		});
-		$('#rightarrow').bind("touchstart, click", function(event) {
+		$(".scroll_x").on("touchend", function(e) { scrollAnimate(); });
+		
+		$('#rightarrow').bind("touchstart", function(event) {
 			var that = $(this);
-			that.attr("src", "images/rightarrow_sel.png");
+			that.attr("src", "images/rightarrow_selected.png");
 			if(target_wCol < (_COLLENGTH)-windowsize && target_wCol > -1) {
 				target_wCol += 1; scrollAnimate();
 			}
 		});
-		$('#leftarrow').bind("touchstart, click", function(event) {
+		$('#leftarrow').bind("touchstart", function(event) {
 			var that = $(this);
-			that.attr("src", "images/leftarrow_sel.png");
+			that.attr("src", "images/leftarrow_selected.png");
 			if(target_wCol > -1) {
 				target_wCol -= 1; scrollAnimate();
 			}
 		});	
-		$('#rightarrow').bind("touchend", function(event) {	var that = $(this);	that.attr("src", "images/rightarrow.png"); });
-		$('#leftarrow').bind("touchend", function(event) {	var that = $(this);	that.attr("src", "images/leftarrow.png"); });
+		$('#rightarrow').on("touchend", function(event) {	var that = $(this);	that.attr("src", "images/rightarrow.png"); });
+		$('#leftarrow').on("touchend", function(event) {	var that = $(this);	that.attr("src", "images/leftarrow.png"); });
 	}
 });
 
@@ -452,7 +453,7 @@ var LeftPanelInterface = EmergeInterface.extend({
 		}
 	},
 	/* Add navigation functionality, for going through datasets larger than the 10x10 grid on the EMERGE system. */
-	addScrollbarNavigation : function() {
+	addScrollbarNavigation : function(settings) {
 		var LEFTSCROLLNUB = 0;
 		/** Redraw the data set with a given window. */
 		var redraw = function(wrow) {
@@ -460,7 +461,7 @@ var LeftPanelInterface = EmergeInterface.extend({
 			wrow = wrow.clamp(0, _ROWLENGTH - windowsize);
 			
 			// Push to the graph with explicit normalisation parameters.
-			comms.emit("UPDATE_DATASET_SCROLLY", JSON.stringify({ position:wrow, min_param: 0.2, max_param: 0.8, zixelspeed : 0}), function(data) {
+			comms.emit("UPDATE_DATASET_SCROLLY", JSON.stringify({position:wrow}), function(data) {
 				if(data != "") {
 					_ALLROWS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
@@ -490,12 +491,13 @@ var LeftPanelInterface = EmergeInterface.extend({
 			} 
 		}
 		if($('body').find("#leftnavigationfunctions").children().length > 0) { $('body').find("#leftnavigationfunctions").empty(); }
-		$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/arrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/arrowdn.png"></img>');
+		$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/uparrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/downarrow.png"></img>');
 		
-		var limiter=1; //look and feel purposes
+		var limiter=0; //look and feel purposes
 		var vscroll_size = (windowsize / _ROWLENGTH)*100;
 		if(vscroll_size < 5) vscroll_size=5;
 		LEFTSCROLLNUB = Math.round(vscroll_size);
+		
 		$("#vscroll .nub_y").css("height", (LEFTSCROLLNUB-limiter)+"%");
 		$("#vscroll .ghost_y").css("height", LEFTSCROLLNUB+"%");
 		
@@ -516,11 +518,13 @@ var LeftPanelInterface = EmergeInterface.extend({
 			that.find(".nub_y").css("top", (percent * 100) + "%");
 			// Adjust the percentage relative to the window size.
 			target_wRow = Math.floor(_ROWLENGTH * percent);
+		});
+		$(".scroll_y").on("touchend", function(e) {
 			scrollAnimate();
 		});
 		$('#downarrow').bind("touchstart, click", function(event) {
 			var that = $(this);
-			that.attr("src", "images/arrowdn_sel.png");
+			that.attr("src", "images/downarrow_selected.png");
 			if(target_wRow < parseInt(_ROWLENGTH)-windowsize && target_wRow > -1) {
 				target_wRow += 1;
 				scrollAnimate();
@@ -528,13 +532,13 @@ var LeftPanelInterface = EmergeInterface.extend({
 		});
 		$('#uparrow').bind("touchstart, click", function(event) {
 			var that = $(this);
-			that.attr("src", "images/arrow_sel.png");
+			that.attr("src", "images/uparrow_selected.png");
 			if(target_wRow > -1) {
 				target_wRow -= 1;
 				scrollAnimate();
 			}
 		});	
-		$('#downarrow').bind("touchend", function(event) { var that = $(this); that.attr("src", "images/arrowdn.png"); });
-		$('#uparrow').bind("touchend", function(event) { var that = $(this); that.attr("src", "images/arrow.png"); });
+		$('#downarrow').bind("touchend", function(event) { var that = $(this); that.attr("src", "images/downarrow.png"); });
+		$('#uparrow').bind("touchend", function(event) { var that = $(this); that.attr("src", "images/uparrow.png"); });
 	}
 });

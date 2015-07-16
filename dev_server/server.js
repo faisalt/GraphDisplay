@@ -139,8 +139,6 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on(UPDATE_DATASET_SCROLLX, function(message, callback) {
 		var params = JSON.parse(message);
-		var min = params.min_param;
-		var max = params.max_param;
 		var pos = params.position;
 		dataScrollX(pos);
 		// Send back new labels on client GUI
@@ -157,8 +155,6 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on(UPDATE_DATASET_SCROLLY, function(message, callback) {
 		var params = JSON.parse(message);
-		var min = params.min_param;
-		var max = params.max_param;
 		var pos = params.position;
 		dataScrollY(pos);
 		// Send back new labels on client GUI

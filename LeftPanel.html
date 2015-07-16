@@ -11,10 +11,8 @@
 	</head>
 	
 	<body>
-		<!--<div id="datainfo">
-			<span class="title"></span>
-		</div>-->
 		<div id="leftaxis"></div>
+		<div id="leftpanel_widgets"></div>
 		<div id="leftnavigationfunctions"></div>
 	</body>
 
@@ -32,7 +30,9 @@ $(document).ready(function() {
 				draggableLabels:true 
 			});
 			// Add scrollbar for navigating through the dataset
-			leftpanel.addScrollbarNavigation();
+			leftpanel.addScrollbarNavigation({
+				scroll_speed:50
+			});
 			/*leftpanel.widgets({
 				reload:true,
 				undo:false,

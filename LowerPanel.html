@@ -12,7 +12,7 @@
 	
 	<body>
 		<div id="loweraxis"></div>
-		<div id="lowerpanelfunctions"></div>
+		<div id="lowerpanel_widgets"></div>
 		<div id="lowernavigationfunctions"></div>
 	</body>
 	
@@ -29,7 +29,9 @@ $(document).ready(function() {
 				draggableLabels:true 
 			});
 			// Add scrollbar for navigating through the dataset
-			lowerpanel.addScrollbarNavigation();
+			lowerpanel.addScrollbarNavigation({
+				scroll_speed:50
+			});
 		});
 		
 	});
