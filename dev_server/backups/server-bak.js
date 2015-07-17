@@ -46,8 +46,6 @@ var COMPARE_TIME_1 					= 0;
 var COMPARE_TIME_2 					= 0;
 var FILTER_COMPARISON_INTERVAL 		= 500;
 var FILTER_COMPARISON_TIMER_TICK 	= 50;
-var rowcomparison_array = Array();
-var filterCoordinates = Array();
 
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
@@ -77,6 +75,7 @@ var SET_FILTERED				= "SET_FILTERED";
 // Socket function variables - Broadcast variables.
 var DATASET_WINDOW_UPDATE		= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
 var DATASET_WINDOW_UPDATE_LIMITED = "DATASET_WINDOW_UPDATE_LIMITED";
+
 
 // Websocket variables.
 var port			= 8383;
@@ -181,7 +180,7 @@ io.sockets.on('connection', function (socket) {
 		var filtered_row = filtered_coords["filtered_coordinate"][0];
 		var filtered_col = filtered_coords["filtered_coordinate"][1];
 		console.log(filtered_row + ", " + filtered_col);
-		filterDataPoint(filtered_row, filtered_col);
+		filterDataPoint_v2(filtered_row, filtered_col);
 		//parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
@@ -410,37 +409,76 @@ function annotateDataPoint(row, col) {
 
 
 
-/* **** Data Filtering functions **** */
+/* Data Filtering functions */
+/*
+* TO DO - some kind of efficient way of detecting duplicate values being sent by the graph (or handle this in the graph software).
+*/
+var rowcomparison_array = Array();
+var filterCoordinates = Array();
 
-// Data points need to be filtered in 2 modes - single points, and comparing 2 rows (where everything else is filtered out/hidden).
+
+
 function filterDataPoint(row, col) {
+	var data = DataSetObject.AllDataVals();
+	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
+	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	
+	if(row == 0 || row == 9) {
+		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
+		PRESS_COMPARE_COUNTER++;
+		rowcomparison_array.push(parseInt(col + xindex));
+		filterCoordinates.push(parseInt(row + yindex));
+		filterCoordinates.push(parseInt(col + xindex));
+		if(COMPARE_TIMER_STARTED == false) {
+			COMPARE_TIME_1 = timestamp();
+			beginCompareTimer("COMPARE_COL");
+		}
+	}
+	else if(col == 0 || col == 9) {
+		// These are the vertical rows or columns - if facing the bar chart from normal mapping.
+		PRESS_COMPARE_COUNTER++;
+		rowcomparison_array.push(parseInt(row + yindex));
+		filterCoordinates.push(parseInt(row + yindex));
+		filterCoordinates.push(parseInt(col + xindex));
+		if(COMPARE_TIMER_STARTED == false) {
+			COMPARE_TIME_1 = timestamp();
+			beginCompareTimer("COMPARE_ROW");
+		}
+	}
+	else {
+		// Individual data point needs to be filtered
+		data[parseInt(row+yindex)][parseInt(col+xindex)].filtered = true;
+		DataSetObject.setAllDataVals(data);
+	}
+}
+
+function filterDataPoint_v2(row, col) {
+	var data = DataSetObject.AllDataVals();
+	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
+	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	
 	filterCoordinates.push([parseInt(row), parseInt(col)]);
 	PRESS_COMPARE_COUNTER++;
-	/* Start timer to detect whether we need to compare two rows or filter out a single point. Timer is set to 
-	 * detect presses within a specific timeframe. */
 	if(COMPARE_TIMER_STARTED == false) {
 		COMPARE_TIME_1 = timestamp();
 		beginCompareTimer();
 	}
 }
-// Filter a single data point.
+
 function filterSingleDataPoint() {
 	var data = DataSetObject.AllDataVals();
 	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
-	for(var i=0; i<filterCoordinates.length; i++) {
-		data[parseInt(filterCoordinates[i][0] + yindex)][parseInt(filterCoordinates[i][1]+xindex)].filtered = true;
-	}
+	data[parseInt(filterCoordinates[0][0] + yindex)][parseInt(filterCoordinates[0][1]+xindex)].filtered = true;
 	DataSetObject.setAllDataVals(data);
 	filterCoordinates = Array();
 }
-// Compare two rows or columns, keep these ones and filter out the rest of the data window.
+
 function filterCompare(mode, grp1, grp2) {
 	var data = DataSetObject.AllDataVals();
 	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
 	if(mode == "COMPARE_COL") {
-		// Columns according to normal orientation.
 		grp1 = parseInt(grp1 + xindex);
 		grp2 = parseInt(grp2 + xindex);
 		for(var i=yindex; i<(_NUMROWS+yindex); i++) {
@@ -450,8 +488,8 @@ function filterCompare(mode, grp1, grp2) {
 				}
 			}
 		}
-	} else if(mode == "COMPARE_ROW") {
-		// Rows according to normal orientation.
+	}
+	else if(mode == "COMPARE_ROW") {
 		grp1 = parseInt(grp1 + yindex);
 		grp2 = parseInt(grp2 + yindex);
 		for(var i=yindex; i<(_NUMROWS+yindex); i++) {
@@ -464,16 +502,19 @@ function filterCompare(mode, grp1, grp2) {
 	}
 	DataSetObject.setAllDataVals(data);
 }
-/* Checks whether synchronous presses are detected within a timeframe (i.e. if two data points side-by-side are pressed within this timeframe, 
- * it is assumed they are pressed consecutively for comparison).
- */
+
 function beginCompareTimer() {
 	COMPARE_TIMER_STARTED = true;
 	COMPARE_TIME_2 = timestamp();
+	
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
-		// If two datapoints are selected, and are along the edges of the graph, then compare those two rows or columns.
-		// TODO - need to make below more efficient, MASSIVE IF STATEMENTS!!! ARGH!
+		console.log("FILTER TO COMPARE!!!");
+		for(var i=0; i<filterCoordinates.length; i++) {
+			console.log(filterCoordinates[i][0] + ", " + filterCoordinates[i][1]);
+		}
+		
 		if(filterCoordinates.length > 1) {
+
 			if((filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 1) ||
 			(filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 8) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 8) || 
 			(filterCoordinates[0][0] == 9 && filterCoordinates[1][0] == 9 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 9 && filterCoordinates[0][0] == 9 && filterCoordinates[0][1] == 1) ||
@@ -496,9 +537,7 @@ function beginCompareTimer() {
 				console.log("compare rows");
 				filterCompare("COMPARE_ROW", filterCoordinates[0][0], filterCoordinates[1][0]);
 			}
-			else {
-				filterSingleDataPoint();
-			}
+			
 		}
 		COMPARE_TIMER_STARTED = false;
 		PRESS_COMPARE_COUNTER = 0;
@@ -507,7 +546,8 @@ function beginCompareTimer() {
 		return;
 	} 
 	else if((COMPARE_TIME_2 - COMPARE_TIME_1) > FILTER_COMPARISON_INTERVAL) {
-		// Time is up - filter single data point.
+		console.log("DO NOT filter!!!");
+		
 		COMPARE_TIMER_STARTED = false;
 		PRESS_COMPARE_COUNTER = 0;
 		COMPARE_TIME_2 = 0; COMPARE_TIME_1 = 0;
@@ -515,12 +555,12 @@ function beginCompareTimer() {
 		filterSingleDataPoint();
 		return;
 	}
+	
 	setTimeout(function() {
 		beginCompareTimer();
 	}, FILTER_COMPARISON_TIMER_TICK);
 }
-
-/* **** End Data Filtering functions. **** */
+/* End Data Filtering functions. */
 
 
 /* DataSet parsing functions: extract dataset, row values, column values, etc. */

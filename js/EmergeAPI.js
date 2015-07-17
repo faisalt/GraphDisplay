@@ -493,7 +493,7 @@ var LeftPanelInterface = EmergeInterface.extend({
 		if($('body').find("#leftnavigationfunctions").children().length > 0) { $('body').find("#leftnavigationfunctions").empty(); }
 		$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/uparrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/downarrow.png"></img>');
 		
-		var limiter=0; //look and feel purposes
+		var limiter=1; //look and feel purposes
 		var vscroll_size = (windowsize / _ROWLENGTH)*100;
 		if(vscroll_size < 5) vscroll_size=5;
 		LEFTSCROLLNUB = Math.round(vscroll_size);

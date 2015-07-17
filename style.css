@@ -176,7 +176,7 @@ div#loweraxis {
 	position:fixed;  
 	border: 2px solid white; 
 	left: 1%; 
-	width: 7%;
+	width: 9%;
 	margin:0 auto;
 	height: 80%; 
 	top:10%;
@@ -200,8 +200,13 @@ div#loweraxis {
 	position: absolute; 
 	display: block; 
 	background-color: white; 
-	width: 99%; 
+	width: 97%; 
 	height: 8%; 
+	outline:none;
+	border-color:white;
+	box-shadow: 0 0 15px white;
+	margin-right:1px;
+	margin-top:1px;
 }
 
 
@@ -222,12 +227,15 @@ div#loweraxis {
 	display: block; 
 	border: 1px solid gray; 
 	background-color: rgba(255, 255, 255, 0.4);
-	width: 99%; 
+	width: 97%; 
 	height: 8%; 
+	outline:none;
+	border-color:gray;
+	box-shadow: 0 0 15px gray;
+	margin-right:1px;
+	margin-top:1px;
 }
 
-
-/****** End navigation scrollbar styling ********/
 
 #up_one {}
 #down_one {}
@@ -244,7 +252,9 @@ div#loweraxis {
 }
 #uparrow:active, #downarrow:active {}
 
-#downarrow { bottom:0.5%; }
-#uparrow { top:0.5%; }
+#downarrow { bottom:0.5%; width:10%;}
+#uparrow { top:0.5%; width:10%;}
 #leftarrow { bottom:0.5%;left:0.5%; }
 #rightarrow { bottom:0.5%;right:0.01%; }
+
+/****** End navigation scrollbar styling ********/
