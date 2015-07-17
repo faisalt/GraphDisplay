@@ -304,14 +304,14 @@ var LowerPanelInterface = EmergeInterface.extend({
 		});
 		$(".scroll_x").on("touchend", function(e) { scrollAnimate(); });
 		
-		$('#rightarrow').bind("touchstart", function(event) {
+		$('#rightarrow').bind("touchstart, click", function(event) {
 			var that = $(this);
 			that.attr("src", "images/rightarrow_selected.png");
 			if(target_wCol < (_COLLENGTH)-windowsize && target_wCol > -1) {
 				target_wCol += 1; scrollAnimate();
 			}
 		});
-		$('#leftarrow').bind("touchstart", function(event) {
+		$('#leftarrow').bind("touchstart, click", function(event) {
 			var that = $(this);
 			that.attr("src", "images/leftarrow_selected.png");
 			if(target_wCol > -1) {

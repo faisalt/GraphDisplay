@@ -147,12 +147,12 @@ div#loweraxis {
 }
 .dropzone_x {
 	/*float:left;*/
-	width:30%;
+	width:100%;
 	height:100%;
 	position:relative;
 	z-index:-1;
 	/*left:-40px;*/
-	left:10px;
+	left:15px;
 }
 
 /********** End lower panel styling ************/
@@ -162,27 +162,9 @@ div#loweraxis {
 /********* Navigation scrollbar styling *********/
 /************************************************/
 
-.scroll_x, .scroll_y { 
+#hscroll.scroll_x{ 
 	position:fixed;  
 	border: 2px solid white; 
-}
-
-.scroll_x .nub_x	, .scroll_y .nub_y{ 
-	position: absolute; 
-	display: block; 
-	border-radius: 5px; 
-	background-color: orange; 
-}
-
-.scroll_x .ghost_x, .scroll_y .ghost_y{ 
-	position: absolute; 
-	display: block; 
-	border-radius: 5px; 
-	border: 1px solid gray; 
-	background-color: rgba(255, 255, 255, 0.4); 
-}
-			
-#hscroll.scroll_x{ 
 	bottom: 1%; 
 	width: 80%;
 	left:10%;
@@ -190,8 +172,9 @@ div#loweraxis {
 	height: 10%; 
 	background-color: rgb(52, 52, 52); 
 }
-
 #vscroll.scroll_y {
+	position:fixed;  
+	border: 2px solid white; 
 	left: 1%; 
 	width: 7%;
 	margin:0 auto;
@@ -200,25 +183,50 @@ div#loweraxis {
 	background-color: rgb(52, 52, 52); 
 }
 
-#hscroll.scroll_x .nub_x	{ 
-	width: 8%; 
-	height: 100%; 
-}
 
+#hscroll.scroll_x .nub_x	{ 
+	position: absolute; 
+	display: block; 
+	background-color: white; 
+	width: 8%; 
+	height: 97%; 
+	outline:none;
+	border-color:white;
+	box-shadow: 0 0 15px white;
+	margin-left:1px;
+	margin-top:1px;
+}
 #vscroll.scroll_y .nub_y	{ 
-	width: 100%; 
+	position: absolute; 
+	display: block; 
+	background-color: white; 
+	width: 99%; 
 	height: 8%; 
 }
 
+
 #hscroll.scroll_x .ghost_x{ 
+	position: absolute; 
+	display: block; 
+	border: 1px solid gray; 
+	background-color: rgba(255, 255, 255, 0.4);
 	width: 8%; 
-	height: 100%; 
+	height: 97%;
+	outline:none;
+	border-color:gray;
+	box-shadow: 0 0 15px gray;
 }
 
 #vscroll.scroll_y .ghost_y{ 
-	width: 100%; 
+	position: absolute; 
+	display: block; 
+	border: 1px solid gray; 
+	background-color: rgba(255, 255, 255, 0.4);
+	width: 99%; 
 	height: 8%; 
 }
+
+
 /****** End navigation scrollbar styling ********/
 
 #up_one {}
