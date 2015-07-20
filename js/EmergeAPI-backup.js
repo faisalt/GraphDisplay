@@ -70,6 +70,20 @@ function initComms(clientID, study_port, onOpen) {
 	});
 }
 
+var SERVER_COMMS = (function() {
+	return {
+		send : function(params) {
+			comms.emit(params, _CLIENT);
+		},
+		request : function(params) {
+			comms.emit(params, _CLIENT, function(data) {
+				var callback_data = JSON.parse(data);
+				if(callback_data != "") return callback_data;
+			});
+		}
+	}
+})();
+
 var EmergeInterface = Class.extend({ 
 	init : function(settings) {	},
 	
@@ -99,14 +113,17 @@ var EmergeInterface = Class.extend({
 });
 
 
-var X_AxisInterface = EmergeInterface.extend({
+var LowerPanelInterface = EmergeInterface.extend({
 	_XLABELS : [],
 	_COLLENGTH : 0,
+	_ALLCOLS : [],
+	
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLCOLUMNS", _CLIENT, function(data) {
 			var callback_data = JSON.parse(data);
 			_XLABELS = callback_data;
+			_ALLCOLS = callback_data;
 			_COLLENGTH = callback_data.length;
 			if(_XLABELS != "") { callback(); }
 		});
@@ -231,9 +248,9 @@ var X_AxisInterface = EmergeInterface.extend({
 			// Push to the graph with explicit normalisation parameters.
 			comms.emit("UPDATE_DATASET_SCROLLX", JSON.stringify({position:wcol}), function(data) {
 				if(data != "") {
-					_XLABELS = JSON.parse(data);
+					_ALLCOLS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
-					for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[wcol + i]); }
+					for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _ALLCOLS[wcol + i]); }
 					// Update the position of the ghost scrollbars on the lower panel.
 					$("#hscroll .ghost_x").css("left", ((wcol / _COLLENGTH) * 100) + "%");
 				}
@@ -310,14 +327,18 @@ var X_AxisInterface = EmergeInterface.extend({
 
 
 
-var Y_AxisInterface = EmergeInterface.extend({
+
+var YAxisInterface = EmergeInterface.extend({
 	_YLABELS : [],
 	_ROWLENGTH : 0,
+	_ALLROWS : [],
+	
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLROWS", _CLIENT, function(data) {
 			var callback_data = JSON.parse(data);
 			_YLABELS = callback_data;
+			_ALLROWS = callback_data;
 			_ROWLENGTH = callback_data.length;
 			if(_YLABELS != "") { callback(); }
 		});
@@ -327,7 +348,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 		var root = $("body").find("#leftaxis");
 		if($("body").find("#leftaxis").children().length > 0) { $("body").find("#leftaxis").empty(); }
 		// Y Axis - or axis on the left hand side of the graph
-		for (var i = Y_LIMIT-1; i > -1; --i) {
+		for (var i = 0; i < Y_LIMIT; ++i) {
 			$("<div>").appendTo(root)
 			.append($("<div>").addClass("text axis_label_left draggable_y drag-drop_y"))
 			.append($("<div>").addClass("bar"))
@@ -337,9 +358,11 @@ var Y_AxisInterface = EmergeInterface.extend({
 			.append($("<div>").addClass("dropzone_y"));
 			$("#axislabel_y_" + i).find("div.text").append($('<span class="spantext_y">'));
 		}
+		
 		//$("div#leftaxis").find("div#axislabel_y_0").children().css("margin-bottom", "0px");
-		$("div#leftaxis").find("div#axislabel_y_0").css("margin-right", "0px");
-		// Get the labels for the y axis, i.e. the left panel and add them to the interface.
+		$("div#leftaxis").find("div#axislabel_y_9").css("margin-right", "0px");
+		
+		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
 		
 		if(settings.draggableLabels == true) {
@@ -442,9 +465,9 @@ var Y_AxisInterface = EmergeInterface.extend({
 			// Push to the graph with explicit normalisation parameters.
 			comms.emit("UPDATE_DATASET_SCROLLY", JSON.stringify({position:wrow}), function(data) {
 				if(data != "") {
-					_YLABELS = JSON.parse(data);
+					_ALLROWS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
-					for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[wrow + i]); }
+					for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _ALLROWS[wrow + i]); }
 					// Update the position of the ghost scrollbars on the left panel.
 					$("#vscroll .ghost_y").css("left", ((wrow / _ROWLENGTH) * 100) + "%");
 				}
@@ -471,8 +494,6 @@ var Y_AxisInterface = EmergeInterface.extend({
 		}
 		if($('body').find("#leftnavigationfunctions").children().length > 0) { $('body').find("#leftnavigationfunctions").empty(); }
 		$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/leftarrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/rightarrow.png"></img>');
-		
-		$("div#vscroll").css("transform", "rotate(-180deg)");
 		
 		var limiter=1; //look and feel purposes
 		var vscroll_size = (windowsize / _ROWLENGTH)*100;
@@ -504,30 +525,18 @@ var Y_AxisInterface = EmergeInterface.extend({
 			scrollAnimate();
 		});
 		$('#downarrow').bind("touchstart, click", function(event) {
-			/*var that = $(this);
+			var that = $(this);
 			that.attr("src", "images/rightarrow_selected.png");
 			if(target_wRow < parseInt(_ROWLENGTH)-windowsize && target_wRow > -1) {
 				target_wRow += 1;
-				scrollAnimate();
-			}*/
-			var that = $(this);
-			that.attr("src", "images/rightarrow_selected.png");
-			if(target_wRow > -1) {
-				target_wRow -= 1;
 				scrollAnimate();
 			}
 		});
 		$('#uparrow').bind("touchstart, click", function(event) {
-			/*var that = $(this);
+			var that = $(this);
 			that.attr("src", "images/leftarrow_selected.png");
 			if(target_wRow > -1) {
 				target_wRow -= 1;
-				scrollAnimate();
-			}*/
-			var that = $(this);
-			that.attr("src", "images/leftarrow_selected.png");
-			if(target_wRow < parseInt(_ROWLENGTH)-windowsize && target_wRow > -1) {
-				target_wRow += 1;
 				scrollAnimate();
 			}
 		});	

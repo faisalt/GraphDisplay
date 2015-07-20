@@ -23,15 +23,15 @@
 $(document).ready(function() {
 	//Connect to web socket port
 	console.log("Connecting to port");
-	initComms("LEFT_PANEL", WS_PORT, function(){ 
-		var leftpanel = new LeftPanelInterface(function() {
+	initComms("Y_AXIS_PANEL", WS_PORT, function(){ 
+		var leftpanel = new Y_AxisInterface(function() {
 			// Generate the column labels and specify whether they can be draggable/reorganized
 			leftpanel.generateRowLabels({ 
 				draggableLabels:true 
 			});
 			// Add scrollbar for navigating through the dataset
 			leftpanel.addScrollbarNavigation({
-				scroll_speed:50
+				//scroll_speed:50
 			});
 			/*leftpanel.widgets({
 				reload:true,

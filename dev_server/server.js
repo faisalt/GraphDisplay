@@ -225,6 +225,11 @@ function DataIndex() {
 	this.resetYScrollIndex = function() { scrollindex_y = 0; }
 }
 
+function DataSetObjectHistory() {
+	// Keep list of 'windows'
+	// Once previous window is activated, re-label connected interface, and re-adjust scrollbars (if organization and navigation actions have taken place)
+}
+
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
 function DataSetObject(csvfile, xmlfile) {
 	
@@ -256,11 +261,13 @@ function DataSetObject(csvfile, xmlfile) {
 	for(var col=1;col<maxcols; col++) { allCols.push(_CSVDATA[0][col]); }
 	
 	var allData=[];	var allDataObjects=[]; var count = 0;
+	var rowmap = [], colmap = [];
 	for(var row=1; row<maxrows+1; row++) {
 		var temp_data=[];
 		var temp_data_object=[];
 		allData.push(temp_data);
 		allDataObjects.push(temp_data_object);
+		rowmap.push(row-1);
 		for(var col=1;col<maxcols; col++) {
 			temp_data.push(_CSVDATA[row][col]);
 			var dataobj = new dataValObject(count, _CSVDATA[row][col], row-1, col-1);
@@ -268,7 +275,8 @@ function DataSetObject(csvfile, xmlfile) {
 			count++;
 		}
 	}
-		
+	for(var col=1;col<maxcols; col++) {	colmap.push(col-1); }
+	
 	var max = allData.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
 	var min = allData.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
 	
@@ -334,6 +342,10 @@ function DataSetObject(csvfile, xmlfile) {
 	// Functions below need a reference table.
 	this.resetColumnData = function() {	}
 	this.resetRowData = function() { }
+	this.setRowMap = function(newrows) { rowmap = newrows; }
+	this.setColMap = function(newcols) { colmap = newcols; }
+	this.getRowMap = function() { return rowmap	}
+	this.getColMap = function() { return colmap; }
 }
 
 
@@ -374,15 +386,19 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 	var data = DataSetObject.AllDataVals();
 	if(axis == "COLUMN") {
 		var cols = DataSetObject.AllColumnValues();
+		var colmap = DataSetObject.getColMap();
 		var xindex = DATA_INDEX.getXScrollIndex();
 		rc1 = xindex+rc1; rc2 = xindex+rc2;
 		swap(cols, rc1, rc2);
+		swap(colmap, rc1, rc2);
 		data = swapInner(data, rc1, rc2);
 		DataSetObject.setAllColumnValues(cols);
+		DataSetObject.setColMap(colmap);
 	}
 	// Update rows and dataset
 	if(axis == "ROW") {
 		var rows = DataSetObject.AllRowValues();
+		var rowmap = DataSetObject.getRowMap();
 		var yindex = DATA_INDEX.getYScrollIndex();
 		rc1 = yindex+rc1; rc2 = yindex+rc2;
 		swap(rows, rc1, rc2);
@@ -390,7 +406,9 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		// TODO the rows need reversing, otherwise, problems!!
 		
 		data = swap(data, rc1, rc2); //_CHECK if definitely should be using swap 
+		swap(rowmap, rc1, rc2);
 		DataSetObject.setAllRowValues(rows);
+		DataSetObject.setRowMap(rowmap);
 	}
 	// This should be updating the entire dataset (kept separate from datawindow)
 	DataSetObject.setAllDataVals(data); 
@@ -589,10 +607,17 @@ function parseDebugMessage(message) {
 	var str="";
 	for(var i=0; i<parseddata.length; i++) {
 		for(var j=0; j<parseddata[i].length; j++) {
-			str += (j==(parseddata[i].length - 1)) ? parseddata[i][j].filtered : parseddata[i][j].filtered + ", ";
+			str += (j==(parseddata[i].length - 1)) ? parseddata[i][j].val : parseddata[i][j].val + ", ";
 		}
 		console.log("Row "+i+" : " + str); str="";
 	}
+	var rm = DataSetObject.getRowMap();
+	var cm = DataSetObject.getColMap();
+	/*
+	console.log("\r\n");
+	console.log("Row map: " + JSON.stringify(rm));
+	console.log("Col map: " + JSON.stringify(cm));
+	*/
 	console.log("\r\n \r\n");
 }
 /** Reset all variables. */

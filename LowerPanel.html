@@ -9,7 +9,6 @@
 		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>	
 		<script type="text/javascript" src="js/EmergeAPI.js"></script>	
 	</head>
-	
 	<body>
 		<div id="loweraxis"></div>
 		<div id="lowerpanel_widgets"></div>
@@ -22,8 +21,8 @@
 $(document).ready(function() {
 	//Connect to web socket port
 	console.log("Connecting to port");
-	initComms("LOWER_PANEL", WS_PORT, function(){ 
-		var lowerpanel = new LowerPanelInterface(function() {
+	initComms("X_AXIS_PANEL", WS_PORT, function(){ 
+		var lowerpanel = new X_AxisInterface(function() {
 			// Generate the column labels and specify whether they can be draggable/reorganized
 			lowerpanel.generateColumnLabels({ 
 				draggableLabels:true 
