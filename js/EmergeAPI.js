@@ -6,10 +6,10 @@
  */
  
  /*
- * TO DO:
- * - On loading - make one call to server to get data information for rendering the interface, then on callback, do the rest of the stuff
+ * TO DO / COMPLETE:
  * - Add a *widget* function, which does things like undo, redo, reset, etc.
- * - Rather than having lowerpanel and leftpanel interfaces - change this to X_Interface(POSITION), Y_Interface(POSITION) where position is left/right, top/bottom
+ * - Rather than having lowerpanel and leftpanel interfaces - change this to X_Interface(POSITION), Y_Interface(POSITION) where position is left/right, top/bottom.
+ * - Need to reverse the X interface and Y interface on displays where users are viewing the graph 'upside down' i.e. from the other side of the normal orientation.
  */
  
 (function(){var e=false,t=/xyz/.test(function(){xyz})?/\b_super\b/:/.*/;this.Class=function(){};Class.extend=function(n){function o(){if(!e&&this.init)this.init.apply(this,arguments)}var r=this.prototype;e=true;var i=new this;e=false;for(var s in n){i[s]=typeof n[s]=="function"&&typeof r[s]=="function"&&t.test(n[s])?function(e,t){return function(){var n=this._super;this._super=r[e];var i=t.apply(this,arguments);this._super=n;return i}}(s,n[s]):n[s]}o.prototype=i;o.prototype.constructor=o;o.extend=arguments.callee;return o}})()
@@ -71,7 +71,11 @@ function initComms(clientID, study_port, onOpen) {
 }
 
 var EmergeInterface = Class.extend({ 
-	init : function(settings) {	},
+	init : function(settings) {	
+		if(LOGGING_ENABLED) {
+			// TO DO: Log touches anywhere on the display, which does not involve the GUI components, and send command to server.
+		}
+	},
 	
 	widgets : function(feature) {
 		if(feature.reload == true) {
@@ -102,12 +106,14 @@ var EmergeInterface = Class.extend({
 var X_AxisInterface = EmergeInterface.extend({
 	_XLABELS : [],
 	_COLLENGTH : 0,
+	_XINDEX : 0,
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLCOLUMNS", _CLIENT, function(data) {
 			var callback_data = JSON.parse(data);
-			_XLABELS = callback_data;
-			_COLLENGTH = callback_data.length;
+			_XLABELS = callback_data.data;
+			_COLLENGTH = callback_data.data.length;
+			_XINDEX = callback_data.xindex;
 			if(_XLABELS != "") { callback(); }
 		});
 	},
@@ -267,6 +273,22 @@ var X_AxisInterface = EmergeInterface.extend({
 		$("#hscroll .nub_x").css("width", LOWERSCROLLNUB+"%");
 		$("#hscroll .ghost_x").css("width", LOWERSCROLLNUB+"%");
 		
+		// On connect, if scrolling has already taken place. But also need to do this dynamically.
+		if(_XINDEX > 0 ) {
+			target_wCol = _XINDEX;
+			current_wCol = _XINDEX;
+			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
+			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
+		}
+		comms.on("DATASET_GUI_UPDATE", function(data) {
+			var parsed = JSON.parse(data);
+			_XINDEX = parsed.xindex;
+			target_wCol = _XINDEX;
+			current_wCol = _XINDEX;
+			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
+			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
+		});
+		
 		$(".scroll_x").bind("touchmove", function(event) {	
 			// One event only, get position of touch as a percentage.
 			var that = $(this);
@@ -313,12 +335,14 @@ var X_AxisInterface = EmergeInterface.extend({
 var Y_AxisInterface = EmergeInterface.extend({
 	_YLABELS : [],
 	_ROWLENGTH : 0,
+	_YINDEX : 0,
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLROWS", _CLIENT, function(data) {
 			var callback_data = JSON.parse(data);
-			_YLABELS = callback_data;
-			_ROWLENGTH = callback_data.length;
+			_YLABELS = callback_data.data;
+			_ROWLENGTH = callback_data.data.length;
+			_YINDEX = callback_data.yindex;
 			if(_YLABELS != "") { callback(); }
 		});
 	},
@@ -353,6 +377,10 @@ var Y_AxisInterface = EmergeInterface.extend({
 				target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
 				// update the posiion attributes
 				target.setAttribute('data-x', x); target.setAttribute('data-y', y);
+				if(settings.loggingEnabled == true) {
+					// TODO stub data logging
+					// User is dragging label
+				}
 			},
 			interact('.draggable_y').draggable({
 				// enable inertial throwing
@@ -391,7 +419,15 @@ var Y_AxisInterface = EmergeInterface.extend({
 						$(event.target).parent().find('.draggable_y').hasClass('drop-target_y') &&
 						!$(event.target).parent().find('.draggable_y').hasClass('drag-active_y')){
 						ENABLESWAP = true;
-					} else { ENABLESWAP = false; }
+						if(settings.loggingEnabled == true) {
+							// TODO stub : user has swapped a row
+						}
+					} else { 
+						ENABLESWAP = false;
+						if(settings.loggingEnabled == true) {
+							// TODO stub: user has unsuccessfully attempted to drag a label
+						}
+					}
 					
 					//remove feedback (highlighting) from the target being moved to and also the target
 					var a = $('div.drag-active_y').get(0);
@@ -481,6 +517,22 @@ var Y_AxisInterface = EmergeInterface.extend({
 		
 		$("#vscroll .nub_y").css("width", (LEFTSCROLLNUB-limiter)+"%");
 		$("#vscroll .ghost_y").css("width", LEFTSCROLLNUB+"%");
+		
+		// On connect, if scrolling has already taken place, then update GUI accordingly. But also need to do this dynamically.
+		if(_YINDEX > 0 ) {
+			target_wRow = _YINDEX;
+			current_wRow = _YINDEX;
+			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); 
+			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
+		}
+		comms.on("DATASET_GUI_UPDATE", function(data) {
+			var parsed = JSON.parse(data);
+			_YINDEX = parsed.yindex;
+			target_wRow = _YINDEX;
+			current_wRow = _YINDEX;
+			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); 
+			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
+		});
 		
 		$(".scroll_y").bind("touchmove", function(event) {	
 			// One event only, get position of touch as a percentage.

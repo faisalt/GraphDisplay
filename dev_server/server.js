@@ -38,6 +38,7 @@ var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
 var _ANIMATION_TIME		= 50;
+var LOGGING_ENABLED		= false;
 
 // Variables for filtering
 var PRESS_COMPARE_COUNTER 			= 0;
@@ -51,6 +52,7 @@ var filterCoordinates = Array();
 
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
+var DataHistory 		= new HistoricalDataSetObject();
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
 var DATAMAX_LIMITER		= 0.9;
 var DATAMIN_LIMITER		= 0.3;
@@ -77,10 +79,14 @@ var SET_FILTERED				= "SET_FILTERED";
 // Socket function variables - Broadcast variables.
 var DATASET_WINDOW_UPDATE		= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
 var DATASET_WINDOW_UPDATE_LIMITED = "DATASET_WINDOW_UPDATE_LIMITED";
+var DATASET_GUI_UPDATE			= "DATASET_GUI_UPDATE";
 
 // Websocket variables.
 var port			= 8383;
 var app 			= io = require('socket.io').listen(app);
+
+// Allows writing/appending to file.
+var fs 				= require('fs');
 
 // Listen on specified port.
 app.listen(port);
@@ -91,6 +97,10 @@ console.log("Listening on port: "+port);
 require('dns').lookup(require('os').hostname(), function (err, add, fam) {
   console.log('Local IP Address: '+add+"\r\n");
 });
+
+
+//delete
+DATA_INDEX.setYScrollIndex(1);
 
 
 // Handle incoming requests from clients on connection
@@ -118,7 +128,8 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on(REQUEST_ALLCOLUMNS, function(message, callback) {
 		var cdata = DataSetObject.AllColumnValues();
-		callback(JSON.stringify(cdata));
+		var send_xindex = DATA_INDEX.getXScrollIndex();
+		callback(JSON.stringify({data:cdata, xindex:send_xindex}));
 	});
 	
 	socket.on(REQUEST_ROW_LENGTH, function(message, callback) {
@@ -127,7 +138,8 @@ io.sockets.on('connection', function (socket) {
 	});
 	socket.on(REQUEST_ALLROWS, function(message, callback) {
 		var rdata = DataSetObject.AllRowValues();
-		callback(JSON.stringify(rdata));
+		var send_yindex = DATA_INDEX.getYScrollIndex();
+		callback(JSON.stringify({data:rdata, yindex:send_yindex}));
 	});
 	/* End Request Handlers*/
 	
@@ -137,6 +149,7 @@ io.sockets.on('connection', function (socket) {
 		swapCol(colstoswap.column_1, colstoswap.column_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLX, function(message, callback) {
 		var params = JSON.parse(message);
@@ -146,6 +159,7 @@ io.sockets.on('connection', function (socket) {
 		callback(JSON.stringify(DataSetObject.AllColumnValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex()}));
 	});
 	
 	socket.on(ROW_SWAP, function (message) {
@@ -153,6 +167,7 @@ io.sockets.on('connection', function (socket) {
 		swapRow(rowstoswap.row_1, rowstoswap.row_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLY, function(message, callback) {
 		var params = JSON.parse(message);
@@ -162,6 +177,7 @@ io.sockets.on('connection', function (socket) {
 		callback(JSON.stringify(DataSetObject.AllRowValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex()}));
 	});
 	socket.on(SET_ANNOTATED, function(data) {
 		// Requires datapoint indices.
@@ -184,6 +200,12 @@ io.sockets.on('connection', function (socket) {
 		filterDataPoint(filtered_row, filtered_col);
 		//parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+	});
+	// Below is the action logging for the collaboration user study
+	socket.on("ACTION_LOG", function(data) {
+		if(LOGGING_ENABLED) {
+			//Do logging stuff here.
+		}
 	});
 	/* End Action Handlers */
 			
@@ -225,9 +247,39 @@ function DataIndex() {
 	this.resetYScrollIndex = function() { scrollindex_y = 0; }
 }
 
-function DataSetObjectHistory() {
-	// Keep list of 'windows'
-	// Once previous window is activated, re-label connected interface, and re-adjust scrollbars (if organization and navigation actions have taken place)
+function HistoricalDataSetObject() {
+	// Keep list of 'datasets'
+	// Once a previous dataset is activated, re-label connected interface, and re-adjust scrollbars (if organization and navigation actions have taken place)
+	var dataHistory = Array();
+	var columnMapHistory = Array();
+	var rowMapHistory = Array();
+	var yindexHistory = Array();
+	var xindexHistory = Array()
+	
+	// These two below are important as they will be the array accessors.
+	var undoCount = 0;
+	var redoCount = 0;
+	
+	this.addHistoryData = function(object) {
+		dataHistory.push(object);
+	}
+	this.getHistoryData = function() {
+		for(var i=0; i<dataHistory.length; i++) {
+			console.log(JSON.stringify(dataHistory[i]));
+		}
+		return dataHistory;
+	}
+	this.resetHistory = function() {
+		dataHistory = Array();
+	}
+	this.undo = function() {
+		// Revert to last stored dataset
+		// Remap columns and rows
+		// Remap x and y navigation indices
+		if(dataHistory.length > 0) {
+			var newData = dataHistory[undoCount];
+		}
+	}
 }
 
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
@@ -582,6 +634,15 @@ function readMetaData_XML(file) {
 /* End DataSet parsing functions */
 
 /* General Functions */
+/** Function to append to file for logging purposes - i.e. for the collaboration user study. */
+function logData(data) {
+	data = data + "\r\n";
+	//TO DO: check if file exists, if not, create file, then append
+	fs.appendFile('tmp/EMERGE_LOG.txt', data, function (err) {
+		if(err) { return console.log("Could not write to file \r\n" + err); }
+		else { }
+	});
+}
 /** Get current time in milliseconds. */
 function timestamp() {
 	var d = new Date();
