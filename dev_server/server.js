@@ -52,8 +52,8 @@ var filterCoordinates = Array();
 
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
-var DataHistory 		= new HistoricalDataSetObject();
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
+var DataHistory 		= new DataHistory();
 var DATAMAX_LIMITER		= 0.9;
 var DATAMIN_LIMITER		= 0.3;
 
@@ -76,10 +76,17 @@ var UPDATE_DATASET_SCROLLY		= "UPDATE_DATASET_SCROLLY";
 var SET_ANNOTATED				= "SET_ANNOTATED";
 var SET_FILTERED				= "SET_FILTERED";
 
+var ACTION_UNDO					= "ACTION_UNDO";
+var ACTION_REDO					= "ACTION_REDO";
+var ACTION_RELOAD				= "ACTION_RELOAD";
+
 // Socket function variables - Broadcast variables.
-var DATASET_WINDOW_UPDATE		= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
-var DATASET_WINDOW_UPDATE_LIMITED = "DATASET_WINDOW_UPDATE_LIMITED";
-var DATASET_GUI_UPDATE			= "DATASET_GUI_UPDATE";
+var DATASET_WINDOW_UPDATE			= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
+var DATASET_WINDOW_UPDATE_LIMITED 	= "DATASET_WINDOW_UPDATE_LIMITED";
+var DATASET_X_SCROLLBAR_UPDATE		= "DATASET_X_SCROLLBAR_UPDATE";
+var DATASET_Y_SCROLLBAR_UPDATE		= "DATASET_Y_SCROLLBAR_UPDATE";
+var DATASET_X_LABEL_UPDATE			= "DATASET_X_LABEL_UPDATE";
+var DATASET_Y_LABEL_UPDATE			= "DATASET_Y_LABEL_UPDATE";
 
 // Websocket variables.
 var port			= 8383;
@@ -99,26 +106,35 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 });
 
 
-//delete
-DATA_INDEX.setYScrollIndex(1);
+
 
 
 // Handle incoming requests from clients on connection
 io.sockets.on('connection', function (socket) {
 	socket.on("clientConnection", function (clientid, callback) {
 		console.log("\r\nClient "+clientid+" has connected! \r\n");
-		// Incrememnt the client counter
-		_CLIENTCOUNTER++;
-		// Once data loaded, etc. respond to client
-		callback("CONNECTED");
+		_CLIENTCOUNTER++; // Incrememnt the client counter.
+		callback("CONNECTED"); // Once data loaded, etc. respond to client.
     });
 	socket.on("EMERGEClient", function(clientid) {
 		console.log("\r\nClient "+clientid+" has connected!\r\n");
 		_CLIENTCOUNTER++;
 	});
-	
+	/* Relay requests */
 	socket.on(DATASET_WINDOW_UPDATE, function() {
 		socket.emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+	});
+	
+	socket.on("UPDATE_GUI", function(client) {
+		// socket.emit = local, socket.broadcast.emit = global
+		socket.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
+		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
+		socket.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
+		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
+		socket.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
+		socket.broadcast.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
+		socket.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
+		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 	});
 	
 	/* Request Handlers */
@@ -148,44 +164,50 @@ io.sockets.on('connection', function (socket) {
 		var colstoswap = JSON.parse(message);
 		swapCol(colstoswap.column_1, colstoswap.column_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		DataHistory.add();
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
-		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
+		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
+		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLX, function(message, callback) {
 		var params = JSON.parse(message);
 		var pos = params.position;
 		dataScrollX(pos);
+		DataHistory.add();
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllColumnValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
-		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex()}));
+		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
 	});
 	
 	socket.on(ROW_SWAP, function (message) {
 		var rowstoswap = JSON.parse(message);
 		swapRow(rowstoswap.row_1, rowstoswap.row_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		DataHistory.add();
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
-		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
+		socket.broadcast.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
+		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 	});
 	socket.on(UPDATE_DATASET_SCROLLY, function(message, callback) {
 		var params = JSON.parse(message);
 		var pos = params.position;
 		dataScrollY(pos);
+		DataHistory.add();
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllRowValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
-		socket.broadcast.emit(DATASET_GUI_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex()}));
+		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 	});
 	socket.on(SET_ANNOTATED, function(data) {
-		// Requires datapoint indices.
-		// Take into account xscroll index and yscroll index. IMPORTANT: ROWS are REVERSED! so need to handle this.
+		//TODO fix that this gets called multiple times - maybe fix in c# code.
 		var annotated_coords = JSON.parse(data);
 		var annotated_row = annotated_coords["annotated_coordinate"][0];
 		var annotated_col = annotated_coords["annotated_coordinate"][1];
 		annotateDataPoint(annotated_row, annotated_col);
+		DataHistory.add();
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		//console.log("Row: " + annotated_row + ", Col: "+annotated_col);
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
@@ -198,8 +220,22 @@ io.sockets.on('connection', function (socket) {
 		var filtered_col = filtered_coords["filtered_coordinate"][1];
 		console.log(filtered_row + ", " + filtered_col);
 		filterDataPoint(filtered_row, filtered_col);
+		DataHistory.add();
 		//parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+	});
+	/* Undo and Redo commands. */
+	socket.on(ACTION_UNDO, function(data, callback) {
+		DataHistory.undo();
+		callback("SUCCESS");
+	});
+	socket.on(ACTION_REDO, function(data, callback) {
+		DataHistory.redo();
+		callback("SUCCESS");
+	});
+	socket.on(ACTION_RELOAD, function(data, callback) {
+		DataHistory.resetAll();
+		callback("SUCCESS");
 	});
 	// Below is the action logging for the collaboration user study
 	socket.on("ACTION_LOG", function(data) {
@@ -235,7 +271,6 @@ io.sockets.on('connection', function (socket) {
 
 
 
-
 /** DataIndex objects to track the x and y position during navigation (scrolling). */
 function DataIndex() {
 	var scrollindex_x = 0, scrollindex_y = 0;
@@ -247,44 +282,81 @@ function DataIndex() {
 	this.resetYScrollIndex = function() { scrollindex_y = 0; }
 }
 
-function HistoricalDataSetObject() {
-	// Keep list of 'datasets'
-	// Once a previous dataset is activated, re-label connected interface, and re-adjust scrollbars (if organization and navigation actions have taken place)
-	var dataHistory = Array();
-	var columnMapHistory = Array();
-	var rowMapHistory = Array();
-	var yindexHistory = Array();
-	var xindexHistory = Array()
-	
-	// These two below are important as they will be the array accessors.
-	var undoCount = 0;
+/** Historical data stored here. Also undo and redo feature, which accesses data 'states' at specific points. */
+function DataHistory() {
+	var undoCount = 0; // Keep a count - array accessor
 	var redoCount = 0;
-	
-	this.addHistoryData = function(object) {
-		dataHistory.push(object);
-	}
-	this.getHistoryData = function() {
-		for(var i=0; i<dataHistory.length; i++) {
-			console.log(JSON.stringify(dataHistory[i]));
+	var dataHistoryArray = Array(); // Array of historical data
+	var UNDO_MODE = false;
+	var REDO_MODE = false;
+	// Base values (start state)
+	dataHistoryArray.push([
+		JSON.parse(JSON.stringify(DataSetObject.AllDataVals().slice(0))), 
+		DataSetObject.AllRowValues().slice(0), 
+		DataSetObject.AllColumnValues().slice(0), 
+		DATA_INDEX.getXScrollIndex(), 
+		DATA_INDEX.getYScrollIndex()
+	]);
+	this.add = function() {
+		if(UNDO_MODE == true || REDO_MODE == true) {
+			dataHistoryArray = dataHistoryArray.slice(0,parseInt(undoCount+1));
+			UNDO_MODE = false;
+			REDO_MODE = false;
 		}
-		return dataHistory;
-	}
-	this.resetHistory = function() {
-		dataHistory = Array();
+		dataHistoryArray.push([
+			JSON.parse(JSON.stringify(DataSetObject.AllDataVals().slice(0))),
+			DataSetObject.AllRowValues().slice(0), 
+			DataSetObject.AllColumnValues().slice(0), 
+			DATA_INDEX.getXScrollIndex(), 
+			DATA_INDEX.getYScrollIndex()
+		]);
+		// Needs to access the data back one step.
+		undoCount = dataHistoryArray.length-1;
+		redoCount = dataHistoryArray.length-1;
 	}
 	this.undo = function() {
-		// Revert to last stored dataset
-		// Remap columns and rows
-		// Remap x and y navigation indices
-		if(dataHistory.length > 0) {
-			var newData = dataHistory[undoCount];
+		if(undoCount >= 0) {
+			UNDO_MODE = true; 
+			if(undoCount > 0) { undoCount--; }
+			DataSetObject.setAllDataVals(JSON.parse(JSON.stringify(dataHistoryArray[undoCount][0].slice(0)))); 
+			DataSetObject.setAllRowValues(dataHistoryArray[undoCount][1].slice(0));
+			DataSetObject.setAllColumnValues(dataHistoryArray[undoCount][2].slice(0)); 
+			DATA_INDEX.setXScrollIndex(dataHistoryArray[undoCount][3]);
+			DATA_INDEX.setYScrollIndex(dataHistoryArray[undoCount][4]);
+			redoCount = undoCount;
 		}
+	}
+	this.redo = function() {
+		if(redoCount <= dataHistoryArray.length) {
+			REDO_MODE = true;
+			if(redoCount < dataHistoryArray.length-1) { redoCount++; }
+			DataSetObject.setAllDataVals(dataHistoryArray[redoCount][0].slice(0)); 
+			DataSetObject.setAllRowValues(dataHistoryArray[redoCount][1].slice(0));
+			DataSetObject.setAllColumnValues(dataHistoryArray[redoCount][2].slice(0)); 
+			DATA_INDEX.setXScrollIndex(dataHistoryArray[redoCount][3]);
+			DATA_INDEX.setYScrollIndex(dataHistoryArray[redoCount][4]);
+			undoCount = redoCount;
+		}
+	}
+	this.resetAll = function() {
+		DataSetObject.resetData();
+		REDO_MODE = false;
+		UNDO_MODE = false;
+		undoCount = 0; redoCount=0;
+		dataHistoryArray = Array();
+		dataHistoryArray.push([
+			JSON.parse(JSON.stringify(DataSetObject.AllDataVals().slice(0))), 
+			DataSetObject.AllRowValues().slice(0), 
+			DataSetObject.AllColumnValues().slice(0), 
+			DATA_INDEX.getXScrollIndex(), 
+			DATA_INDEX.getYScrollIndex()
+		]);
 	}
 }
 
+
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
-function DataSetObject(csvfile, xmlfile) {
-	
+function DataSetObject(csvfile, xmlfile) {	
 	// Each data value as an object with properties.
 	var dataValObject = function(id, val, x, y) {
 		this.id=id;
@@ -349,7 +421,7 @@ function DataSetObject(csvfile, xmlfile) {
 	}
 	// Get all the values of the dataset
 	this.AllDataVals = function() {	return allDataObjects;	}
-	this.setAllDataVals = function(data) { 	allData = data; }
+	this.setAllDataVals = function(data) { 	allDataObjects = data; allData = data; }
 	// Get all the row values of the dataset.
 	this.AllRowValues = function() { return allRows; }
 	// Set all row values, e.g. if rows have been reorganized by user.
@@ -400,16 +472,12 @@ function DataSetObject(csvfile, xmlfile) {
 	this.getColMap = function() { return colmap; }
 }
 
-
-
 /* Data Navigation Functions: Handle data scrolling on the x and y axis */
 /** Increment/decrement X axis index. */
 function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); }
 /** Increment/decrement Y axis index. */
 function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); }
 /* End Data Navigation Functions */
-
-
 
 /* Data Organization functions */
 /** Swap two elements of an array and return the array. */
@@ -441,8 +509,8 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		var colmap = DataSetObject.getColMap();
 		var xindex = DATA_INDEX.getXScrollIndex();
 		rc1 = xindex+rc1; rc2 = xindex+rc2;
-		swap(cols, rc1, rc2);
-		swap(colmap, rc1, rc2);
+		cols = swap(cols, rc1, rc2);
+		colmap = swap(colmap, rc1, rc2);
 		data = swapInner(data, rc1, rc2);
 		DataSetObject.setAllColumnValues(cols);
 		DataSetObject.setColMap(colmap);
@@ -453,12 +521,9 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		var rowmap = DataSetObject.getRowMap();
 		var yindex = DATA_INDEX.getYScrollIndex();
 		rc1 = yindex+rc1; rc2 = yindex+rc2;
-		swap(rows, rc1, rc2);
-		
-		// TODO the rows need reversing, otherwise, problems!!
-		
-		data = swap(data, rc1, rc2); //_CHECK if definitely should be using swap 
-		swap(rowmap, rc1, rc2);
+		rows = swap(rows, rc1, rc2);
+		data = swap(data, rc1, rc2);
+		rowmap = swap(rowmap, rc1, rc2);
 		DataSetObject.setAllRowValues(rows);
 		DataSetObject.setRowMap(rowmap);
 	}

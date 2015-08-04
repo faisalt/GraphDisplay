@@ -37,6 +37,38 @@ input#refresh {
 span.title {
 	font-weight: bold;
 }
+/*
+div#leftaxis {
+	width:80%;
+	float:right;
+}
+*/
+/*
+.axis_label_left {
+	padding:20px;
+	display:inline-block;
+	width:80%;
+	border:1px solid lightgray;
+	margin-bottom:5px;
+	float:right;
+	text-align:right;
+	font-size:1.5em;
+	background-color:#FFFFC8;
+	z-index:2;
+	color:black;*/
+	/*Change below for display size and resolution*/
+	/*height:50px;
+	margin-bottom:38px;
+}
+*/
+/*
+.control.axislabel.y {
+	position:relative;
+	width:100%;
+	float:right;
+}
+*/
+
 
 /************************************************/
 /*************** Panel styling ************/
@@ -154,7 +186,18 @@ div#loweraxis, div#leftaxis {
 	height: 10%; 
 	background-color: rgb(52, 52, 52); 
 }
-
+/*
+#vscroll.scroll_y {
+	position:fixed;  
+	border: 2px solid white; 
+	left: 1%; 
+	width: 9%;
+	margin:0 auto;
+	height: 80%; 
+	top:10%;
+	background-color: rgb(52, 52, 52); 
+}
+*/
 #hscroll.scroll_x .nub_x, #vscroll.scroll_y .nub_y	{ 
 	position: absolute; 
 	display: block; 
@@ -167,6 +210,19 @@ div#loweraxis, div#leftaxis {
 	margin-left:1px;
 	margin-top:1px;
 }
+/*
+#vscroll.scroll_y .nub_y	{ 
+	position: absolute; 
+	display: block; 
+	background-color: white; 
+	width: 97%; 
+	height: 8%; 
+	outline:none;
+	border-color:white;
+	box-shadow: 0 0 15px white;
+	margin-right:1px;
+	margin-top:1px;
+}*/
 
 #hscroll.scroll_x .ghost_x, #vscroll.scroll_y .ghost_y{ 
 	position: absolute; 
@@ -179,6 +235,21 @@ div#loweraxis, div#leftaxis {
 	border-color:gray;
 	box-shadow: 0 0 15px gray;
 }
+/*
+#vscroll.scroll_y .ghost_y{ 
+	position: absolute; 
+	display: block; 
+	border: 1px solid gray; 
+	background-color: rgba(255, 255, 255, 0.4);
+	width: 97%; 
+	height: 8%; 
+	outline:none;
+	border-color:gray;
+	box-shadow: 0 0 15px gray;
+	margin-right:1px;
+	margin-top:1px;
+}
+*/
 
 #up_one {}
 #down_one {}
@@ -187,6 +258,8 @@ div#loweraxis, div#leftaxis {
 
 #leftarrow , #uparrow{
 	position:absolute;
+	left:1%;
+	padding:none;
 	width:8%;
 }
 #rightarrow , #downarrow{
@@ -197,46 +270,42 @@ div#loweraxis, div#leftaxis {
 
 /*#downarrow { bottom:0.5%; width:10%;}*/
 /*#uparrow { top:0.5%; width:10%;}*/
-#uparrow { bottom:0.5%;left:0.5%; }
-#downarrow { bottom:0.5%;right:0.01%; }
+#leftarrow, #uparrow { bottom:0.5%;left:0.5%; }
+#rightarrow, #downarrow { bottom:0.5%;right:0.01%; }
 
 /****** End navigation scrollbar styling ********/
 
 /*********** Widget stuff ***********************/
 
-div.widgets { float:left; position:relative;}
-div.widget_box {
+div.widgets {
 	float:left;
 	position:relative;
-	display:inline-block;
-	left: 30%;
-	top:100px;
-	padding-top:20px;
-	padding-bottom:20px;
-	padding-left:50px;
-	padding-right:50px;
-	background:black;
-	border:2px solid white;
-	border-radius:20px;
+	left:20%;
 }
+
 input#undo_widget {
 	float: left;
 	position: relative;
+	display: inline-block;
+	top: 72px;
+    left: 100px;
 	width:100px;
-	margin-top:10px;
+    border: 1px solid gray;
+    padding: 10px;
+    padding-top: 30px;
+    padding-bottom: 30px;
 }
 input#redo_widget {
 	float: left;
 	position: relative;
-	margin-left:50px;
+	display: inline-block;
+	top: 72px;
+    left: 120px;
 	width:100px;
-	margin-top:10px;
-}
-input#reload_widget {
-	float: left;
-	position: relative;
-	margin-left:60px;
-	width:75px;
+    border: 1px solid gray;
+    padding: 10px;
+    padding-top: 30px;
+    padding-bottom: 30px;
 }
 
 /*********** End widget stuff ******************/

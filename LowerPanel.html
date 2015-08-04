@@ -12,6 +12,7 @@
 	<body>
 		<div id="loweraxis"></div>
 		<div id="lowerpanel_widgets"></div>
+		<div class="widget_box"></div>
 		<div id="lowernavigationfunctions"></div>
 	</body>
 	
@@ -30,6 +31,11 @@ $(document).ready(function() {
 			// Add scrollbar for navigating through the dataset
 			lowerpanel.addScrollbarNavigation({
 				scroll_speed:100
+			});
+			lowerpanel.widgets({
+				reload:true,
+				undo:true,
+				redo:true
 			});
 		});
 		

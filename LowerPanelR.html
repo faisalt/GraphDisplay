@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>EMERGE display - left</title>
+		<title>EMERGE display - bottom</title>
 		<link rel="stylesheet" type="text/css" href="style.css">
 		<script type="text/javascript" src="js/jquery-1.8.2.js"></script>
 		<script type="text/javascript" src="js/jquery-ui-1.9.1.custom.min.js"></script>
@@ -9,37 +9,39 @@
 		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>	
 		<script type="text/javascript" src="js/EmergeAPI.js"></script>	
 	</head>
-	
 	<body>
-		<div id="leftaxis"></div>
-		<div id="leftpanel_widgets"></div>
-		<div id="leftnavigationfunctions"></div>
+		<div id="loweraxis"></div>
+		<div id="lowerpanel_widgets"></div>
+		<div class="widget_box"></div>
+		<div id="lowernavigationfunctions"></div>
 	</body>
-
+	
 </html>
-
 <script type="text/javascript">
 
 $(document).ready(function() {
 	//Connect to web socket port
 	console.log("Connecting to port");
-	initComms("Y_AXIS_PANEL", WS_PORT, function(){ 
-		var leftpanel = new Y_AxisInterface(function() {
+	initComms("X_AXIS_PANEL", WS_PORT, function(){ 
+		var lowerpanel = new X_AxisInterface(function() {
 			// Generate the column labels and specify whether they can be draggable/reorganized
-			leftpanel.generateRowLabels({ 
-				draggableLabels:true 
+			lowerpanel.generateColumnLabels({ 
+				draggableLabels:true,
+				reverse:true
 			});
 			// Add scrollbar for navigating through the dataset
-			leftpanel.addScrollbarNavigation({
-				//scroll_speed:50
+			lowerpanel.addScrollbarNavigation({
+				scroll_speed:100,
+				reverse:true
 			});
-			leftpanel.widgets({
-				undo:false
-			})
+			lowerpanel.widgets({
+				reload:true,
+				undo:true,
+				redo:true
+			});
 		});
 		
 	});
 });
-
 
 </script>

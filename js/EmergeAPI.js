@@ -78,26 +78,38 @@ var EmergeInterface = Class.extend({
 	},
 	
 	widgets : function(feature) {
-		if(feature.reload == true) {
-			console.log("reload widget");
-			//Add reload button
-			$('body').append('<div id="leftfunctions"><input type="image" onclick="" id="refresh" src="images/reload.png"></input></div>');
-			
-			//On click, send comms message
-			$('input#refresh').on('click', function() {
-				comms.emit("RESET_ALL", _CLIENT);
-			});
-			//comms.emit("ACTION_RELOAD", _CLIENT);
-		}
 		if(feature.undo == true) {
-			//Add undo button
-			//On click, send comms message
-			//comms.emit("ACTION_UNDO", _CLIENT);
+			//Add undo button, on click, send comms message
+			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="undo_widget" src="images/undo.png"></input></div>');
+			$('input#undo_widget').on('click', function() {
+				comms.emit("ACTION_UNDO", _CLIENT, function(data) {
+					if(data == "SUCCESS") {
+						comms.emit("UPDATE_GUI", _CLIENT);
+					}
+				});
+			});
 		}
 		if(feature.redo == true) {
-			//Add redo button
-			//On click, send comms message
-			//comms.emit("ACTION_REDO", _CLIENT);
+			//Add undo button, on click, send comms message
+			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="redo_widget" src="images/redo.png"></input></div>');
+			$('input#redo_widget').on('click', function() {
+				comms.emit("ACTION_REDO", _CLIENT, function(data) {
+					if(data == "SUCCESS") {
+						comms.emit("UPDATE_GUI", _CLIENT);
+					}
+				});
+			});
+		}
+		if(feature.reload == true) {
+			//Add reload button
+			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="reload_widget" src="images/reload.png"></input></div>');
+			$('input#reload_widget').on('click', function() {
+				comms.emit("ACTION_RELOAD", _CLIENT, function(data) {
+					if(data == "SUCCESS") {
+						comms.emit("UPDATE_GUI", _CLIENT);
+					}
+				});
+			});
 		}
 	}
 });
@@ -123,21 +135,42 @@ var X_AxisInterface = EmergeInterface.extend({
 		// In case of a disconnect / reconnect event, don't want to add the UI elements more than once, so empty the div if stuff is in there
 		if($("body").find("#loweraxis").children().length > 0) { $("body").find("#loweraxis").empty(); }
 		// X Axis - or axis on the lower end of the graph
-		for (var i = 0; i < X_LIMIT; ++i) {
-			$("<div>").appendTo(root)
-			.append($("<div>").addClass("text axis_label_lower draggable_x drag-drop_x"))
-			.append($("<div>").addClass("bar"))
-			.addClass("control axislabel x")
-			.attr("id", "axislabel_x_" + i)
-			.data("axis", "x").data("idx", i)
-			.append($("<div>").addClass("dropzone_x"));
-			$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
+		if(settings.reverse == true) {
+			for (var i = X_LIMIT-1; i >=0 ; --i) {
+				$("<div>").appendTo(root)
+				.append($("<div>").addClass("text axis_label_lower draggable_x drag-drop_x"))
+				.append($("<div>").addClass("bar"))
+				.addClass("control axislabel x")
+				.attr("id", "axislabel_x_" + i)
+				.data("axis", "x").data("idx", i)
+				.append($("<div>").addClass("dropzone_x"));
+				$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
+			}
+		} else {
+			for (var i = 0; i < X_LIMIT; ++i) {
+				$("<div>").appendTo(root)
+				.append($("<div>").addClass("text axis_label_lower draggable_x drag-drop_x"))
+				.append($("<div>").addClass("bar"))
+				.addClass("control axislabel x")
+				.attr("id", "axislabel_x_" + i)
+				.data("axis", "x").data("idx", i)
+				.append($("<div>").addClass("dropzone_x"));
+				$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
+			}
 		}
 		
-		$("div#loweraxis").find("div#axislabel_x_9").css("margin-right", "0px");
+		if(settings.reverse == true) { $("div#loweraxis").find("div#axislabel_x_0").css("margin-right", "0px"); }
+		else { $("div#loweraxis").find("div#axislabel_x_9").css("margin-right", "0px"); }
 		
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
+		
+		comms.on("DATASET_X_LABEL_UPDATE", function(data) {
+			console.log("guiupdate");
+			var parsed = JSON.parse(data);
+			_XLABELS = parsed.columns;
+			for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
+		});
 		
 		if(settings.draggableLabels == true) {
 			this.dragMoveListener = function(event) {
@@ -264,7 +297,33 @@ var X_AxisInterface = EmergeInterface.extend({
 			}
 		}
 		if($('body').find("#lowernavigationfunctions").children().length > 0) { $('body').find("#lowernavigationfunctions").empty(); }
-		$('body').find("#lowernavigationfunctions").append('<img id="leftarrow" src="images/leftarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="rightarrow" src="images/rightarrow.png"></div>');
+		
+		
+		if(settings.reverse == true) { 
+			$('body').find("#lowernavigationfunctions").append('<img id="rightarrow" src="images/rightarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="leftarrow" src="images/leftarrow.png"></img></div>');
+			$('div#hscroll').css('transform', 'rotate(180deg)'); 
+			$('img#leftarrow').css({
+				 'bottom':'0.5%',
+				 'right':'0.01%',
+				 'transform':'rotate(180deg)'
+			});
+			$('img#rightarrow').css({
+				 'bottom':'0.5%',
+				 'left':'0.01%',
+				 'transform':'rotate(180deg)'
+			});
+		}
+		else {
+			$('body').find("#lowernavigationfunctions").append('<img id="leftarrow" src="images/leftarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="rightarrow" src="images/rightarrow.png"></div>');
+			$('img#rightarrow').css({
+				 'bottom':'0.5%',
+				 'right':'0.01%'
+			});
+			$('img#leftarrow').css({
+				 'bottom':'0.5%',
+				 'left':'0.01%'
+			});
+		}
 		
 		var hscroll_size = (windowsize / _COLLENGTH)*100;
 		if(hscroll_size < 5) hscroll_size=5;
@@ -278,19 +337,23 @@ var X_AxisInterface = EmergeInterface.extend({
 			target_wCol = _XINDEX;
 			current_wCol = _XINDEX;
 			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
+			$("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
 			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
 		}
-		comms.on("DATASET_GUI_UPDATE", function(data) {
+		comms.on("DATASET_X_SCROLLBAR_UPDATE", function(data) {
 			var parsed = JSON.parse(data);
 			_XINDEX = parsed.xindex;
 			target_wCol = _XINDEX;
 			current_wCol = _XINDEX;
+			_XLABELS = parsed.xlabels;
 			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
+			$("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
 			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
 		});
 		
 		$(".scroll_x").bind("touchmove", function(event) {	
 			// One event only, get position of touch as a percentage.
+			// TODO sort out restricting the nub to each end of the scrollbar for the reverse mode
 			var that = $(this);
 			var touches = event.originalEvent.touches;
 			if (touches.length != 1) return;
@@ -298,12 +361,19 @@ var X_AxisInterface = EmergeInterface.extend({
 			// Compute position of touch as a percentage.
 			var xaxis = that.attr("id") == "hscroll";
 			var x = (touch.pageX - that.offset().left) / that.width();
-			var percent = x;
+			if(settings.reverse == true) { var percent = 0.9-x;	}
+			else { var percent = x; }
 			var temp = parseFloat(LOWERSCROLLNUB/100).toFixed(1);
-			var clampLower = parseFloat(1-temp).toFixed(1);
-			percent = percent.clamp(0, clampLower);// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
+			var clampLower = parseFloat(1-temp).toFixed(1);				
 			// Update scrollbars.
-			that.find(".nub_x").css(xaxis ? "left" : "top", (percent * 100) + "%");
+			if(settings.reverse == true) {
+				percent = percent.clamp(0, clampLower);
+				that.find(".nub_x").css("right", (x * 100) + "%");
+			}
+			else { 
+				percent = percent.clamp(0, clampLower); 
+				that.find(".nub_x").css("left", (percent * 100) + "%"); 
+			}
 			// Adjust the percentage relative to the window size.
 			target_wCol = Math.floor(_COLLENGTH * percent);			
 		});
@@ -365,6 +435,12 @@ var Y_AxisInterface = EmergeInterface.extend({
 		$("div#leftaxis").find("div#axislabel_y_0").css("margin-right", "0px");
 		// Get the labels for the y axis, i.e. the left panel and add them to the interface.
 		for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
+		
+		comms.on("DATASET_Y_LABEL_UPDATE", function(data) {
+			var parsed = JSON.parse(data);
+			_YLABELS = parsed.rows;
+			for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
+		});
 		
 		if(settings.draggableLabels == true) {
 			this.dragMoveListener = function(event) {
@@ -525,11 +601,12 @@ var Y_AxisInterface = EmergeInterface.extend({
 			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); 
 			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
 		}
-		comms.on("DATASET_GUI_UPDATE", function(data) {
+		comms.on("DATASET_Y_SCROLLBAR_UPDATE", function(data) {
 			var parsed = JSON.parse(data);
 			_YINDEX = parsed.yindex;
 			target_wRow = _YINDEX;
 			current_wRow = _YINDEX;
+			_YLABELS = parsed.ylabels;
 			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); 
 			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
 		});
