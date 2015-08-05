@@ -146,6 +146,7 @@ var X_AxisInterface = EmergeInterface.extend({
 				.append($("<div>").addClass("dropzone_x"));
 				$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
 			}
+			$("div#loweraxis").find("div#axislabel_x_0").css("margin-right", "0px");
 		} else {
 			for (var i = 0; i < X_LIMIT; ++i) {
 				$("<div>").appendTo(root)
@@ -157,16 +158,13 @@ var X_AxisInterface = EmergeInterface.extend({
 				.append($("<div>").addClass("dropzone_x"));
 				$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
 			}
+			$("div#loweraxis").find("div#axislabel_x_9").css("margin-right", "0px");
 		}
-		
-		if(settings.reverse == true) { $("div#loweraxis").find("div#axislabel_x_0").css("margin-right", "0px"); }
-		else { $("div#loweraxis").find("div#axislabel_x_9").css("margin-right", "0px"); }
 		
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
 		
 		comms.on("DATASET_X_LABEL_UPDATE", function(data) {
-			console.log("guiupdate");
 			var parsed = JSON.parse(data);
 			_XLABELS = parsed.columns;
 			for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
@@ -302,27 +300,13 @@ var X_AxisInterface = EmergeInterface.extend({
 		if(settings.reverse == true) { 
 			$('body').find("#lowernavigationfunctions").append('<img id="rightarrow" src="images/rightarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="leftarrow" src="images/leftarrow.png"></img></div>');
 			$('div#hscroll').css('transform', 'rotate(180deg)'); 
-			$('img#leftarrow').css({
-				 'bottom':'0.5%',
-				 'right':'0.01%',
-				 'transform':'rotate(180deg)'
-			});
-			$('img#rightarrow').css({
-				 'bottom':'0.5%',
-				 'left':'0.01%',
-				 'transform':'rotate(180deg)'
-			});
+			$('img#leftarrow').css({ 'bottom':'0.5%', 'right':'0.01%', 'transform':'rotate(180deg)'	});
+			$('img#rightarrow').css({ 'bottom':'0.5%', 'left':'0.01%', 'transform':'rotate(180deg)'	});
 		}
 		else {
 			$('body').find("#lowernavigationfunctions").append('<img id="leftarrow" src="images/leftarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="rightarrow" src="images/rightarrow.png"></div>');
-			$('img#rightarrow').css({
-				 'bottom':'0.5%',
-				 'right':'0.01%'
-			});
-			$('img#leftarrow').css({
-				 'bottom':'0.5%',
-				 'left':'0.01%'
-			});
+			$('img#rightarrow').css({ 'bottom':'0.5%', 'right':'0.01%' });
+			$('img#leftarrow').css({ 'bottom':'0.5%', 'left':'0.01%' });
 		}
 		
 		var hscroll_size = (windowsize / _COLLENGTH)*100;
@@ -332,12 +316,18 @@ var X_AxisInterface = EmergeInterface.extend({
 		$("#hscroll .nub_x").css("width", LOWERSCROLLNUB+"%");
 		$("#hscroll .ghost_x").css("width", LOWERSCROLLNUB+"%");
 		
+		//For reverse interfaces
+		var temp = parseFloat(LOWERSCROLLNUB/100).toFixed(1);
+		var clampLower = parseFloat(1-temp).toFixed(1);
+		var clampLowerPercent = clampLower*100;
+		
 		// On connect, if scrolling has already taken place. But also need to do this dynamically.
 		if(_XINDEX > 0 ) {
 			target_wCol = _XINDEX;
 			current_wCol = _XINDEX;
-			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
-			$("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
+			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 			
+			if(settings.reverse == true) { $("#hscroll .nub_x").css("right", clampLowerPercent - (((_XINDEX / _COLLENGTH) * 100)) + "%"); }
+			else { $("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); }			
 			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
 		}
 		comms.on("DATASET_X_SCROLLBAR_UPDATE", function(data) {
@@ -347,28 +337,36 @@ var X_AxisInterface = EmergeInterface.extend({
 			current_wCol = _XINDEX;
 			_XLABELS = parsed.xlabels;
 			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
-			$("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
+			if(settings.reverse == true) { $("#hscroll .nub_x").css("right", clampLowerPercent - (((_XINDEX / _COLLENGTH) * 100)) + "%"); }
+			else { $("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); } 
 			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
 		});
 		
+		// Touch event handlers
 		$(".scroll_x").bind("touchmove", function(event) {	
 			// One event only, get position of touch as a percentage.
-			// TODO sort out restricting the nub to each end of the scrollbar for the reverse mode
 			var that = $(this);
 			var touches = event.originalEvent.touches;
 			if (touches.length != 1) return;
 			var touch =  touches[0];
+			
 			// Compute position of touch as a percentage.
-			var xaxis = that.attr("id") == "hscroll";
 			var x = (touch.pageX - that.offset().left) / that.width();
-			if(settings.reverse == true) { var percent = 0.9-x;	}
-			else { var percent = x; }
+			
 			var temp = parseFloat(LOWERSCROLLNUB/100).toFixed(1);
-			var clampLower = parseFloat(1-temp).toFixed(1);				
+			var clampLower = parseFloat(1-temp).toFixed(1);	
+
+			if(settings.reverse == true) { 
+				var percent = clampLower-x;	
+			} else { 
+				var percent = x; 
+			}			
+			
 			// Update scrollbars.
 			if(settings.reverse == true) {
-				percent = percent.clamp(0, clampLower);
+				x=x.clamp(0,clampLower);
 				that.find(".nub_x").css("right", (x * 100) + "%");
+				console.log(that.find(".nub_x").css("right"));
 			}
 			else { 
 				percent = percent.clamp(0, clampLower); 
@@ -421,18 +419,34 @@ var Y_AxisInterface = EmergeInterface.extend({
 		var root = $("body").find("#leftaxis");
 		if($("body").find("#leftaxis").children().length > 0) { $("body").find("#leftaxis").empty(); }
 		// Y Axis - or axis on the left hand side of the graph
-		for (var i = Y_LIMIT-1; i > -1; --i) {
-			$("<div>").appendTo(root)
-			.append($("<div>").addClass("text axis_label_left draggable_y drag-drop_y"))
-			.append($("<div>").addClass("bar"))
-			.addClass("control axislabel y")
-			.attr("id", "axislabel_y_" + i)
-			.data("axis", "y").data("idx", i)
-			.append($("<div>").addClass("dropzone_y"));
-			$("#axislabel_y_" + i).find("div.text").append($('<span class="spantext_y">'));
+		if(settings.reverse == true) {
+			for (var i = 0; i < Y_LIMIT; ++i) {
+				$("<div>").appendTo(root)
+				.append($("<div>").addClass("text axis_label_left draggable_y drag-drop_y"))
+				.append($("<div>").addClass("bar"))
+				.addClass("control axislabel y")
+				.attr("id", "axislabel_y_" + i)
+				.data("axis", "y").data("idx", i)
+				.append($("<div>").addClass("dropzone_y"));
+				$("#axislabel_y_" + i).find("div.text").append($('<span class="spantext_y">'));
+			}
+			$("div#leftaxis").find("div#axislabel_y_9").css("margin-right", "0px");
 		}
-		//$("div#leftaxis").find("div#axislabel_y_0").children().css("margin-bottom", "0px");
-		$("div#leftaxis").find("div#axislabel_y_0").css("margin-right", "0px");
+		else {
+			for (var i = Y_LIMIT-1; i > -1; --i) {
+				$("<div>").appendTo(root)
+				.append($("<div>").addClass("text axis_label_left draggable_y drag-drop_y"))
+				.append($("<div>").addClass("bar"))
+				.addClass("control axislabel y")
+				.attr("id", "axislabel_y_" + i)
+				.data("axis", "y").data("idx", i)
+				.append($("<div>").addClass("dropzone_y"));
+				$("#axislabel_y_" + i).find("div.text").append($('<span class="spantext_y">'));
+			}
+			$("div#leftaxis").find("div#axislabel_y_0").css("margin-right", "0px");
+		}
+		
+
 		// Get the labels for the y axis, i.e. the left panel and add them to the interface.
 		for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
 		
@@ -582,9 +596,19 @@ var Y_AxisInterface = EmergeInterface.extend({
 			} 
 		}
 		if($('body').find("#leftnavigationfunctions").children().length > 0) { $('body').find("#leftnavigationfunctions").empty(); }
-		$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/leftarrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/rightarrow.png"></img>');
 		
-		$("div#vscroll").css("transform", "rotate(-180deg)");
+		
+		if(settings.reverse == true) { 
+			$('body').find("#leftnavigationfunctions").append('<img id="downarrow" src="images/rightarrow.png"></img></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="uparrow" src="images/leftarrow.png"></img>');
+			$('img#downarrow').css({ 'bottom':'0.5%', 'left':'0.5%', 'transform':'rotate(180deg)'	});
+			$('img#uparrow').css({ 'bottom':'0.5%', 'right':'0.01%', 'transform':'rotate(180deg)'	});
+		}
+		else {
+			$('body').find("#leftnavigationfunctions").append('<img id="uparrow" src="images/leftarrow.png"></img><div id="vscroll" class="scroll_y"><div class="nub_y"></div><div class="ghost_y"></div></div><img id="downarrow" src="images/rightarrow.png"></img>');
+			$("div#vscroll").css("transform", "rotate(180deg)");
+			$('img#uparrow').css({ 'bottom':'0.5%', 'left':'0.5%' });
+			$('img#downarrow').css({ 'bottom':'0.5%', 'right':'0.01%' });
+		}
 		
 		var limiter=1; //look and feel purposes
 		var vscroll_size = (windowsize / _ROWLENGTH)*100;
@@ -594,11 +618,18 @@ var Y_AxisInterface = EmergeInterface.extend({
 		$("#vscroll .nub_y").css("width", (LEFTSCROLLNUB-limiter)+"%");
 		$("#vscroll .ghost_y").css("width", LEFTSCROLLNUB+"%");
 		
+		//For reverse interfaces
+		var temp = parseFloat(LEFTSCROLLNUB/100).toFixed(1);
+		var clampUpper = parseFloat(1-temp).toFixed(1);
+		var clampUpperPercent = clampUpper*100;
+		
 		// On connect, if scrolling has already taken place, then update GUI accordingly. But also need to do this dynamically.
 		if(_YINDEX > 0 ) {
 			target_wRow = _YINDEX;
 			current_wRow = _YINDEX;
-			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); 
+			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%");
+			if(settings.reverse == true) { $("#vscroll .nub_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); }
+			else { $("#vscroll .nub_y").css("right", clampUpperPercent - (((_YINDEX / _ROWLENGTH) * 100)) + "%"); } 
 			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
 		}
 		comms.on("DATASET_Y_SCROLLBAR_UPDATE", function(data) {
@@ -607,7 +638,9 @@ var Y_AxisInterface = EmergeInterface.extend({
 			target_wRow = _YINDEX;
 			current_wRow = _YINDEX;
 			_YLABELS = parsed.ylabels;
-			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); 
+			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%");
+			if(settings.reverse == true) { $("#vscroll .nub_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); }
+			else { $("#vscroll .nub_y").css("right", clampUpperPercent - (((_YINDEX / _ROWLENGTH) * 100)) + "%"); }  
 			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
 		});
 		
@@ -617,28 +650,33 @@ var Y_AxisInterface = EmergeInterface.extend({
 			var touches = event.originalEvent.touches;
 			if (touches.length != 1) return;
 			var touch =  touches[0];
-			// Compute position of touch as a percentage.
-			var yaxis = that.attr("id") == "vscroll";
-			var y = (touch.pageY - that.offset().top)  / that.width();
-			var percent = y;
+			var y = (touch.pageX - that.offset().left) / that.width();
 			var temp = parseFloat(LEFTSCROLLNUB/100).toFixed(1);
 			var clampUpper = parseFloat(1-temp).toFixed(1);
-			percent = percent.clamp(0, (clampUpper));// 1 - (windowsize / (xaxis ? dDataSet.columns.length : dDataSet.rows.length) )
+			
+			if(settings.reverse == true) { 
+				var percent = y; 
+			} else { 
+				var percent = clampUpper-y;	
+			}		
+			
 			// Update scrollbars.
-			that.find(".nub_y").css("top", (percent * 100) + "%");
+			if(settings.reverse == true) {
+				percent = percent.clamp(0, (clampUpper));
+				that.find(".nub_y").css("left", (percent * 100) + "%");
+			} else {
+				y=y.clamp(0,clampUpper);
+				that.find(".nub_y").css("right", (y * 100) + "%");
+			}
+			
 			// Adjust the percentage relative to the window size.
 			target_wRow = Math.floor(_ROWLENGTH * percent);
 		});
+		
 		$(".scroll_y").on("touchend", function(e) {
 			scrollAnimate();
 		});
 		$('#downarrow').bind("touchstart, click", function(event) {
-			/*var that = $(this);
-			that.attr("src", "images/rightarrow_selected.png");
-			if(target_wRow < parseInt(_ROWLENGTH)-windowsize && target_wRow > -1) {
-				target_wRow += 1;
-				scrollAnimate();
-			}*/
 			var that = $(this);
 			that.attr("src", "images/rightarrow_selected.png");
 			if(target_wRow > -1) {
@@ -647,12 +685,6 @@ var Y_AxisInterface = EmergeInterface.extend({
 			}
 		});
 		$('#uparrow').bind("touchstart, click", function(event) {
-			/*var that = $(this);
-			that.attr("src", "images/leftarrow_selected.png");
-			if(target_wRow > -1) {
-				target_wRow -= 1;
-				scrollAnimate();
-			}*/
 			var that = $(this);
 			that.attr("src", "images/leftarrow_selected.png");
 			if(target_wRow < parseInt(_ROWLENGTH)-windowsize && target_wRow > -1) {

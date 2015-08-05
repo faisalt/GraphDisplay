@@ -180,11 +180,6 @@ div#loweraxis, div#leftaxis {
 	box-shadow: 0 0 15px gray;
 }
 
-#up_one {}
-#down_one {}
-
-#uparrow, #downarrow {}
-
 #leftarrow , #uparrow{
 	position:absolute;
 	width:8%;
@@ -193,12 +188,8 @@ div#loweraxis, div#leftaxis {
 	position:absolute;
 	width:8%;
 }
-#uparrow:active, #downarrow:active {}
 
-/*#downarrow { bottom:0.5%; width:10%;}*/
-/*#uparrow { top:0.5%; width:10%;}*/
-#uparrow { bottom:0.5%;left:0.5%; }
-#downarrow { bottom:0.5%;right:0.01%; }
+#uparrow:active, #downarrow:active {}
 
 /****** End navigation scrollbar styling ********/
 

@@ -28,11 +28,13 @@ $(document).ready(function() {
 		var leftpanel = new Y_AxisInterface(function() {
 			// Generate the column labels and specify whether they can be draggable/reorganized
 			leftpanel.generateRowLabels({ 
-				draggableLabels:true 
+				draggableLabels:true ,
+				reverse:true
 			});
 			// Add scrollbar for navigating through the dataset
 			leftpanel.addScrollbarNavigation({
-				scroll_speed:100
+				scroll_speed:100,
+				reverse:true
 			});
 			leftpanel.widgets({
 				reload:true,
