@@ -24,7 +24,7 @@
 $(document).ready(function() {
 	//Connect to web socket port
 	console.log("Connecting to port");
-	initComms("Y_AXIS_PANEL", WS_PORT, function(){ 
+	initComms("Y_AXIS_PANEL_R", WS_PORT, function(){ 
 		var leftpanel = new Y_AxisInterface(function() {
 			// Generate the column labels and specify whether they can be draggable/reorganized
 			leftpanel.generateRowLabels({ 

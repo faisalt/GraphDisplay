@@ -28,6 +28,8 @@ var target_wCol 		= 0;
 var current_wCol 		= 0;
 var target_wRow			= 0;
 var current_wRow		= 0;
+
+if(LOGGING_ENABLED) { var DRAGCOUNT=0; var SCROLLDRAGCOUNT=0; }
 	
 
 /** Set labels for the lower panel columns. */
@@ -36,6 +38,11 @@ function setXAxisLabel(i, value) { $("#axislabel_x_" + i).find("div.text").find(
 function setYAxisLabel(i, value) { $("#axislabel_y_" + i).find("div.text").find('span.spantext_y').text(value); }
 /** Keep a number within a given range. */
 Number.prototype.clamp = function(min, max) { return Math.min(Math.max(this, min), max); };
+/** Get current time in milliseconds. */
+function timestamp() {
+	var d = new Date();
+	return d.getTime();
+}
 
 /** Start up the comms with the graph using a reconnecting websocket. */
 function initComms(clientID, study_port, onOpen) {
@@ -72,16 +79,13 @@ function initComms(clientID, study_port, onOpen) {
 
 var EmergeInterface = Class.extend({ 
 	init : function(settings) {	
-		if(LOGGING_ENABLED) {
-			// TO DO: Log touches anywhere on the display, which does not involve the GUI components, and send command to server.
-		}
 	},
-	
 	widgets : function(feature) {
 		if(feature.undo == true) {
 			//Add undo button, on click, send comms message
 			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="undo_widget" src="images/undo.png"></input></div>');
 			$('input#undo_widget').on('click', function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNDO", Timestamp:timestamp()}));
 				comms.emit("ACTION_UNDO", _CLIENT, function(data) {
 					if(data == "SUCCESS") {
 						comms.emit("UPDATE_GUI", _CLIENT);
@@ -93,6 +97,7 @@ var EmergeInterface = Class.extend({
 			//Add undo button, on click, send comms message
 			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="redo_widget" src="images/redo.png"></input></div>');
 			$('input#redo_widget').on('click', function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"REDO", Timestamp:timestamp()}));
 				comms.emit("ACTION_REDO", _CLIENT, function(data) {
 					if(data == "SUCCESS") {
 						comms.emit("UPDATE_GUI", _CLIENT);
@@ -104,6 +109,7 @@ var EmergeInterface = Class.extend({
 			//Add reload button
 			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="reload_widget" src="images/reload.png"></input></div>');
 			$('input#reload_widget').on('click', function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"RELOAD", Timestamp:timestamp()}));
 				comms.emit("ACTION_RELOAD", _CLIENT, function(data) {
 					if(data == "SUCCESS") {
 						comms.emit("UPDATE_GUI", _CLIENT);
@@ -128,6 +134,35 @@ var X_AxisInterface = EmergeInterface.extend({
 			_XINDEX = callback_data.xindex;
 			if(_XLABELS != "") { callback(); }
 		});
+		
+		
+	},
+	addLoggingListeners : function(settings) {
+		if(LOGGING_ENABLED) {
+			// TO DO: Log touches anywhere on the display, which does not involve the GUI components, and send command to server.
+			$('body').click(function(e) {
+				if(!$(e.target).is('div#loweraxis') && !$(e.target).is('div.control') && !$(e.target).is('div.text') && !$(e.target).is('div.dropzone') && !$(e.target).is('div.widget_box') 
+				&& !$(e.target).is('div.widgets') && !$(e.target).is('img#leftarrow') && !$(e.target).is('img#uparrow') && !$(e.target).is('img#downarrow') && !$(e.target).is('img#rightarrow') 
+				&& !$(e.target).is('div#hscroll') && !$(e.target).is('div#vscroll') && !$(e.target).is('input#undo_widget') && !$(e.target).is('input#redo_widget') && !$(e.target).is('input#reload_widget')
+				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext')) {
+					//Click or touch is outside any function buttons
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"NON_FUNCTIONAL", Timestamp:timestamp()}));
+				}
+				if($(e.target).is('img#uparrow') || $(e.target).is('img#leftarrow')) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LEFT_SCROLL_BUTTON", Timestamp:timestamp()}));
+				}
+				if($(e.target).is('img#downarrow') || $(e.target).is('img#rightarrow')) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"RIGHT_SCROLL_BUTTON", Timestamp:timestamp()}));
+				}
+				if($(e.target).is('div#hscroll') || $(e.target).is('div#vscroll')) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
+				}
+			});
+			$('div.text').on('click',function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_CLICK", Timestamp:timestamp()}));
+			});
+
+		}
 	},
 	generateColumnLabels : function(settings) {
 		// Reference element the axis go into.
@@ -181,6 +216,12 @@ var X_AxisInterface = EmergeInterface.extend({
 				target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
 				// update the posiion attributes
 				target.setAttribute('data-x', x); target.setAttribute('data-y', y);
+				if(LOGGING_ENABLED) { 
+					if(DRAGCOUNT < 1) {
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_START", Timestamp:timestamp()}));
+						DRAGCOUNT++;
+					}
+				}
 			},
 			interact('.draggable_x').draggable({
 				// enable inertial throwing
@@ -191,10 +232,9 @@ var X_AxisInterface = EmergeInterface.extend({
 				onmove: this.dragMoveListener,
 				// call this function on every dragend event
 				onend: function (event) {
-				  var textEl = event.target.querySelector('p');
-				  $(event.target).removeAttr('style'); $(event.target).removeAttr('data-x'); $(event.target).removeAttr('data-y');
-				  textEl && (textEl.textContent =
-					'moved a distance of ' + (Math.sqrt(event.dx * event.dx + event.dy * event.dy)|0) + 'px');
+					var textEl = event.target.querySelector('p');
+					$(event.target).removeAttr('style'); $(event.target).removeAttr('data-x'); $(event.target).removeAttr('data-y');
+					textEl && (textEl.textContent = 'moved a distance of ' + (Math.sqrt(event.dx * event.dx + event.dy * event.dy)|0) + 'px');
 				}
 			});
 			interact('.dropzone_x').dropzone({
@@ -217,7 +257,10 @@ var X_AxisInterface = EmergeInterface.extend({
 						$(event.target).parent().find('.draggable_x').hasClass('drop-target_x') &&
 						!$(event.target).parent().find('.draggable_x').hasClass('drag-active_x')){
 						ENABLESWAP = true;
-					} else { ENABLESWAP = false; }
+					} else { 
+						ENABLESWAP = false; 
+						
+					}
 					
 					//remove feedback (highlighting) from the target being moved to and also the target
 					var a = $('div.drag-active_x').get(0);
@@ -246,6 +289,20 @@ var X_AxisInterface = EmergeInterface.extend({
 
 						// Tell server that user wants to swap two columns
 						comms.emit("COL_SWAP", JSON.stringify({column_1:c1, column_2:c2}));
+						if(LOGGING_ENABLED) { 
+							if(DRAGCOUNT > 0) {
+								comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_SUCCESSFULL", Timestamp:timestamp()}));
+								DRAGCOUNT=0;
+							}
+						}
+					}
+					else {
+						if(LOGGING_ENABLED) { 
+							if(DRAGCOUNT > 0) {
+								comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_FAILED", Timestamp:timestamp()}));
+								DRAGCOUNT=0;
+							}
+						}
 					}
 					//event.relatedTarget.classList.remove('drag-active_x');
 					$a_parent.find('.draggable_x').get(0).classList.remove('drop-target_x');
@@ -295,7 +352,6 @@ var X_AxisInterface = EmergeInterface.extend({
 			}
 		}
 		if($('body').find("#lowernavigationfunctions").children().length > 0) { $('body').find("#lowernavigationfunctions").empty(); }
-		
 		
 		if(settings.reverse == true) { 
 			$('body').find("#lowernavigationfunctions").append('<img id="rightarrow" src="images/rightarrow.png"></img><div id="hscroll" class="scroll_x"><div class="nub_x"></div><div class="ghost_x"></div></div><img id="leftarrow" src="images/leftarrow.png"></img></div>');
@@ -348,34 +404,40 @@ var X_AxisInterface = EmergeInterface.extend({
 			var that = $(this);
 			var touches = event.originalEvent.touches;
 			if (touches.length != 1) return;
-			var touch =  touches[0];
-			
+			var touch =  touches[0];			
 			// Compute position of touch as a percentage.
 			var x = (touch.pageX - that.offset().left) / that.width();
-			
 			var temp = parseFloat(LOWERSCROLLNUB/100).toFixed(1);
 			var clampLower = parseFloat(1-temp).toFixed(1);	
-
-			if(settings.reverse == true) { 
-				var percent = clampLower-x;	
-			} else { 
-				var percent = x; 
-			}			
-			
+			if(settings.reverse == true) { var percent = clampLower-x;	} 
+			else { var percent = x; }			
 			// Update scrollbars.
 			if(settings.reverse == true) {
 				x=x.clamp(0,clampLower);
 				that.find(".nub_x").css("right", (x * 100) + "%");
-				console.log(that.find(".nub_x").css("right"));
 			}
 			else { 
 				percent = percent.clamp(0, clampLower); 
 				that.find(".nub_x").css("left", (percent * 100) + "%"); 
 			}
 			// Adjust the percentage relative to the window size.
-			target_wCol = Math.floor(_COLLENGTH * percent);			
+			target_wCol = Math.floor(_COLLENGTH * percent);		
+			if(LOGGING_ENABLED) { 
+				if(SCROLLDRAGCOUNT < 1) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR_DRAG_START", Timestamp:timestamp()}));
+					SCROLLDRAGCOUNT++;
+				}
+			}			
 		});
-		$(".scroll_x").on("touchend", function(e) { scrollAnimate(); });
+		$(".scroll_x").on("touchend", function(e) { 
+			scrollAnimate(); 
+			if(LOGGING_ENABLED) { 
+				if(SCROLLDRAGCOUNT > 0) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR_DRAG_END", Timestamp:timestamp()}));
+					SCROLLDRAGCOUNT=0;
+				}
+			}
+		});
 		
 		$('#rightarrow').bind("touchstart, click", function(event) {
 			var that = $(this);
@@ -413,6 +475,33 @@ var Y_AxisInterface = EmergeInterface.extend({
 			_YINDEX = callback_data.yindex;
 			if(_YLABELS != "") { callback(); }
 		});
+	},
+	addLoggingListeners : function(settings) {
+		if(LOGGING_ENABLED) {
+			// TO DO: Log touches anywhere on the display, which does not involve the GUI components, and send command to server.
+			$('body').click(function(e) {
+				if(!$(e.target).is('div#loweraxis') && !$(e.target).is('div.control') && !$(e.target).is('div.text') && !$(e.target).is('div.dropzone') && !$(e.target).is('div.widget_box') 
+				&& !$(e.target).is('div.widgets') && !$(e.target).is('img#leftarrow') && !$(e.target).is('img#uparrow') && !$(e.target).is('img#downarrow') && !$(e.target).is('img#rightarrow') 
+				&& !$(e.target).is('div#hscroll') && !$(e.target).is('div#vscroll') && !$(e.target).is('input#undo_widget') && !$(e.target).is('input#redo_widget') && !$(e.target).is('input#reload_widget')
+				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext')) {
+					//Click or touch is outside any function buttons
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"NON_FUNCTIONAL", Timestamp:timestamp()}));
+				}
+				if($(e.target).is('img#uparrow') || $(e.target).is('img#leftarrow')) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LEFT_SCROLL_BUTTON", Timestamp:timestamp()}));
+				}
+				if($(e.target).is('img#downarrow') || $(e.target).is('img#rightarrow')) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"RIGHT_SCROLL_BUTTON", Timestamp:timestamp()}));
+				}
+				if($(e.target).is('div#hscroll') || $(e.target).is('div#vscroll')) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
+				}
+			});
+			$('div.text').on('click',function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_CLICK", Timestamp:timestamp()}));
+			});
+
+		}
 	},
 	generateRowLabels : function(settings) {
 		// Reference element the axis go into.
@@ -467,9 +556,11 @@ var Y_AxisInterface = EmergeInterface.extend({
 				target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
 				// update the posiion attributes
 				target.setAttribute('data-x', x); target.setAttribute('data-y', y);
-				if(settings.loggingEnabled == true) {
-					// TODO stub data logging
-					// User is dragging label
+				if(LOGGING_ENABLED) { 
+					if(DRAGCOUNT < 1) {
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_START", Timestamp:timestamp()}));
+						DRAGCOUNT++;
+					}
 				}
 			},
 			interact('.draggable_y').draggable({
@@ -512,12 +603,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 						if(settings.loggingEnabled == true) {
 							// TODO stub : user has swapped a row
 						}
-					} else { 
-						ENABLESWAP = false;
-						if(settings.loggingEnabled == true) {
-							// TODO stub: user has unsuccessfully attempted to drag a label
-						}
-					}
+					} else { ENABLESWAP = false; }
 					
 					//remove feedback (highlighting) from the target being moved to and also the target
 					var a = $('div.drag-active_y').get(0);
@@ -544,7 +630,20 @@ var Y_AxisInterface = EmergeInterface.extend({
 						var r1 = $a_parent.data('idx');
 						var r2 = $b_parent.data('idx');
 						comms.emit("ROW_SWAP", JSON.stringify({row_1:r1, row_2:r2}));
-						
+						if(LOGGING_ENABLED) { 
+							if(DRAGCOUNT > 0) {
+								comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_SUCCESSFULL", Timestamp:timestamp()}));
+								DRAGCOUNT=0;
+							}
+						}
+					}
+					else {
+						if(LOGGING_ENABLED) { 
+							if(DRAGCOUNT > 0) {
+								comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_FAILED", Timestamp:timestamp()}));
+								DRAGCOUNT=0;
+							}
+						}
 					}
 					//event.relatedTarget.classList.remove('drag-active_y');
 					$a_parent.find('.draggable_y').get(0).classList.remove('drop-target_y');
@@ -653,13 +752,11 @@ var Y_AxisInterface = EmergeInterface.extend({
 			var y = (touch.pageX - that.offset().left) / that.width();
 			var temp = parseFloat(LEFTSCROLLNUB/100).toFixed(1);
 			var clampUpper = parseFloat(1-temp).toFixed(1);
-			
 			if(settings.reverse == true) { 
 				var percent = y; 
 			} else { 
 				var percent = clampUpper-y;	
 			}		
-			
 			// Update scrollbars.
 			if(settings.reverse == true) {
 				percent = percent.clamp(0, (clampUpper));
@@ -668,13 +765,24 @@ var Y_AxisInterface = EmergeInterface.extend({
 				y=y.clamp(0,clampUpper);
 				that.find(".nub_y").css("right", (y * 100) + "%");
 			}
-			
 			// Adjust the percentage relative to the window size.
 			target_wRow = Math.floor(_ROWLENGTH * percent);
+			if(LOGGING_ENABLED) { 
+				if(SCROLLDRAGCOUNT < 1) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR_DRAG_START", Timestamp:timestamp()}));
+					SCROLLDRAGCOUNT++;
+				}
+			}		
 		});
 		
 		$(".scroll_y").on("touchend", function(e) {
 			scrollAnimate();
+			if(LOGGING_ENABLED) { 
+				if(SCROLLDRAGCOUNT > 0) {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR_DRAG_END", Timestamp:timestamp()}));
+					SCROLLDRAGCOUNT=0;
+				}
+			}
 		});
 		$('#downarrow').bind("touchstart, click", function(event) {
 			var that = $(this);

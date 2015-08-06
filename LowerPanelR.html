@@ -22,7 +22,7 @@
 $(document).ready(function() {
 	//Connect to web socket port
 	console.log("Connecting to port");
-	initComms("X_AXIS_PANEL", WS_PORT, function(){ 
+	initComms("X_AXIS_PANEL_R", WS_PORT, function(){ 
 		var lowerpanel = new X_AxisInterface(function() {
 			// Generate the column labels and specify whether they can be draggable/reorganized
 			lowerpanel.generateColumnLabels({ 

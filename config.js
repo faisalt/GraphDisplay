@@ -26,4 +26,4 @@ $.ajaxSetup({ cache: false });
 var DEBUG_MODE = false;
 
 // Logging (for collaboration user study)
-var LOGGING_ENABLED = false;
+var LOGGING_ENABLED = true;

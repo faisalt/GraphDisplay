@@ -38,7 +38,7 @@ var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
 var _ANIMATION_TIME		= 50;
-var LOGGING_ENABLED		= false;
+var LOGGING_ENABLED		= true;
 
 // Variables for filtering
 var PRESS_COMPARE_COUNTER 			= 0;
@@ -106,7 +106,9 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 });
 
 
-
+// DELETE
+var lockenabled = true; // Temporary
+parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 
 // Handle incoming requests from clients on connection
@@ -202,7 +204,7 @@ io.sockets.on('connection', function (socket) {
 		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 	});
 	socket.on(SET_ANNOTATED, function(data) {
-		//TODO fix that this gets called multiple times - maybe fix in c# code.
+		//TO DO fix that this gets called multiple times - maybe fix in c# code.
 		var annotated_coords = JSON.parse(data);
 		var annotated_row = annotated_coords["annotated_coordinate"][0];
 		var annotated_col = annotated_coords["annotated_coordinate"][1];
@@ -240,7 +242,9 @@ io.sockets.on('connection', function (socket) {
 	// Below is the action logging for the collaboration user study
 	socket.on("ACTION_LOG", function(data) {
 		if(LOGGING_ENABLED) {
-			//Do logging stuff here.
+			console.log(data);
+			var parsed = JSON.parse(data);
+			logData(","+parsed.Timestamp+","+parsed.Action_Name+","+parsed.Action_Type+","+parsed.Device_ID);
 		}
 	});
 	/* End Action Handlers */
@@ -264,9 +268,7 @@ io.sockets.on('connection', function (socket) {
 		socket.broadcast.emit("RESET", "RESET DATA");
 	});
 	// Debug handler
-	socket.on(DEBUG_DATA, function(message) {
-		parseDebugMessage(message);
-	});
+	socket.on(DEBUG_DATA, function(message) { });
 });
 
 
@@ -297,6 +299,7 @@ function DataHistory() {
 		DATA_INDEX.getXScrollIndex(), 
 		DATA_INDEX.getYScrollIndex()
 	]);
+	// Store a copy of the dataset, including indices, row and columns, etc.
 	this.add = function() {
 		if(UNDO_MODE == true || REDO_MODE == true) {
 			dataHistoryArray = dataHistoryArray.slice(0,parseInt(undoCount+1));
@@ -314,6 +317,7 @@ function DataHistory() {
 		undoCount = dataHistoryArray.length-1;
 		redoCount = dataHistoryArray.length-1;
 	}
+	// Go back into the data history.
 	this.undo = function() {
 		if(undoCount >= 0) {
 			UNDO_MODE = true; 
@@ -326,6 +330,7 @@ function DataHistory() {
 			redoCount = undoCount;
 		}
 	}
+	// Go forward in the data history.
 	this.redo = function() {
 		if(redoCount <= dataHistoryArray.length) {
 			REDO_MODE = true;
@@ -338,6 +343,7 @@ function DataHistory() {
 			undoCount = redoCount;
 		}
 	}
+	// Reset to the 'start state' of the graph.
 	this.resetAll = function() {
 		DataSetObject.resetData();
 		REDO_MODE = false;
@@ -365,6 +371,7 @@ function DataSetObject(csvfile, xmlfile) {
 		this.val=val; // The actual value
 		this.annotated=false; // Whether user has annotated a datapoint (e.g. pulled a bar)
 		this.filtered=false; // Whether this datapoint has been filtered out (i.e. hidden)
+		this.locked=false;
 		this.init = function() { }
 	}
 	
@@ -410,14 +417,45 @@ function DataSetObject(csvfile, xmlfile) {
 		var data = this.AllDataVals();
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
-		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
-			var data_row = [];
-			datawindow.push(data_row);
-			for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-				data_row.push(data[row][col]);
+		
+		// TO DO - REMOVE THIS ONCE IMPLEMENTED
+		if(lockenabled == false) {
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				var data_row = [];
+				datawindow.push(data_row);
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					data_row.push(data[row][col]);
+				}
 			}
+			return datawindow;
 		}
-		return datawindow;
+		else if(lockenabled == true) {
+			var temparray=[];
+
+			var templockcol = 3;
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+				data[row][templockcol].locked = true;	
+				temparray.push(data[row][templockcol]);
+			}
+			
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				var data_row = [];
+				datawindow.push(data_row);
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					data_row.push(data[row][col]);
+				}
+			}
+			
+			for (var i=0; i<10; i++) { 
+				/*if(templockcol>0) {
+					datawindow[i][templockcol-1] = datawindow[i][templockcol];
+				}*/
+				datawindow[i][templockcol] = temparray[i];		
+			}
+			
+			//console.log(JSON.stringify(temparray));
+			return datawindow;
+		}
 	}
 	// Get all the values of the dataset
 	this.AllDataVals = function() {	return allDataObjects;	}
@@ -463,7 +501,7 @@ function DataSetObject(csvfile, xmlfile) {
 			}
 		}
 	}
-	// Functions below need a reference table.
+	// Functions below need a reference table - if resetting only the columns, or only the rows.
 	this.resetColumnData = function() {	}
 	this.resetRowData = function() { }
 	this.setRowMap = function(newrows) { rowmap = newrows; }
@@ -566,6 +604,7 @@ function filterSingleDataPoint() {
 	for(var i=0; i<filterCoordinates.length; i++) {
 		data[parseInt(filterCoordinates[i][0] + yindex)][parseInt(filterCoordinates[i][1]+xindex)].filtered = true;
 	}
+	if(LOGGING_ENABLED == true) { logData(","+timestamp()+",FILTER_SINGLE_VALUE, FILTERING, EMERGE_SYSTEM"); }
 	DataSetObject.setAllDataVals(data);
 	filterCoordinates = Array();
 }
@@ -585,6 +624,7 @@ function filterCompare(mode, grp1, grp2) {
 				}
 			}
 		}
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_COLUMNS, FILTERING, EMERGE_SYSTEM"); }
 	} else if(mode == "COMPARE_ROW") {
 		// Rows according to normal orientation.
 		grp1 = parseInt(grp1 + yindex);
@@ -596,6 +636,7 @@ function filterCompare(mode, grp1, grp2) {
 				}
 			}
 		}
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_ROWS, FILTERING, EMERGE_SYSTEM"); }
 	}
 	DataSetObject.setAllDataVals(data);
 }
@@ -607,7 +648,7 @@ function beginCompareTimer() {
 	COMPARE_TIME_2 = timestamp();
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
 		// If two datapoints are selected, and are along the edges of the graph, then compare those two rows or columns.
-		// TODO - need to make below more efficient, MASSIVE IF STATEMENTS!!! ARGH!
+		// TO DO - need to make below more efficient, MASSIVE IF STATEMENTS!!! ARGH!
 		if(filterCoordinates.length > 1) {
 			if((filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 1) ||
 			(filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 8) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 8) || 
@@ -703,7 +744,7 @@ function readMetaData_XML(file) {
 function logData(data) {
 	data = data + "\r\n";
 	//TO DO: check if file exists, if not, create file, then append
-	fs.appendFile('tmp/EMERGE_LOG.txt', data, function (err) {
+	fs.appendFile('logs/EMERGE_LOG.txt', data, function (err) {
 		if(err) { return console.log("Could not write to file \r\n" + err); }
 		else { }
 	});
