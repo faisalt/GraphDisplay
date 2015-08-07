@@ -359,6 +359,7 @@ function DataHistory() {
 
 
 // DELETE
+var templockcol = 3; // Column on lockdown
 var lockenabled = false; // Temporary
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
@@ -431,28 +432,25 @@ function DataSetObject(csvfile, xmlfile) {
 			return datawindow;
 		}
 		else if(lockenabled == true) {
-			var temparray=[];
-
-			var templockcol = 3; //column on lockdown
+			var temparray=[]; // values for locked down column if needed
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
 				data[row][templockcol].locked = true;	
-				temparray.push(data[row][templockcol]);
+				temparray.push(data[row][templockcol]); //holds the values for locked down column
 			}
 			
-			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+			for (var row = parseInt(y); row < parseInt(9+y); ++row) {
 				var data_row = [];
-				datawindow.push(data_row);
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					data_row.push(data[row][col]);
+					if((templockcol-x) >0) {
+						if(col != (templockcol-x)) {
+							data_row.push(data[row][col]);
+						}
+					}
+					else {
+						data_row.push(data[row][col]);
+					}
 				}
-			}
-			var c=1;
-			for (var i=0; i<10; i++) { 
-				if(templockcol>0 && templockcol != (templockcol+x)) {
-					datawindow[i][templockcol-x] = datawindow[i][templockcol];
-				}
-				
-				datawindow[i][templockcol] = temparray[i];		
+				datawindow.push(data_row);
 			}
 			
 			//console.log(JSON.stringify(temparray));
