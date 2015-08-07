@@ -357,6 +357,30 @@ function DataHistory() {
 	}
 }
 
+function addArray(arr) {
+	var t=[];
+	for(var i=0; i<arr.length; i++) {
+		t.push(arr[i]);
+	}
+	return t;
+}
+
+function addArrayColumn(arr, arr2, colindex) {
+	var newarray = [];
+	for(var i=0; i<10; i++) {
+		var t=[];
+		for(var j=0; j<10; j++) {
+			if(j == colindex) {
+				t = addArray(arr2);
+			}
+			else {
+				t = arr[i][j];
+			}
+		}
+		newarray.push(t);
+	}
+	return newarray;
+}
 
 // DELETE
 var templockcol = 3; // Column on lockdown
@@ -438,23 +462,43 @@ function DataSetObject(csvfile, xmlfile) {
 				temparray.push(data[row][templockcol]); //holds the values for locked down column
 			}
 			
-			for (var row = parseInt(y); row < parseInt(9+y); ++row) {
+			// All this stuff is mainly for the column mode anyway
+			// Need to handle row locking after this - should hopefully be slightly simpler
+			
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
 					if((templockcol-x) >0) {
-						if(col != (templockcol-x)) {
+						if(col-x != (templockcol-x)) {
 							data_row.push(data[row][col]);
 						}
 					}
 					else {
+						if(col != parseInt(_NUMCOLS+x)-1)
 						data_row.push(data[row][col]);
 					}
 				}
 				datawindow.push(data_row);
 			}
 			
+			// datawindow up to this point is transmitting values that doesn't include the locked column
+			// somehow need to add the locked columns to the datawindow (if possible) and create a new datawindow
+			// it's best if we send 10x10 values at all times to the C# application
+			
+			
+			var newwindow=[];
+			/*for(var i=0; i<10; i++) {
+				var t=[];
+				for(var j=0; j<10; j++) {
+					if(j<templockcol) {
+						t.push(datawindow[i][j]);
+					}
+				}
+				newwindow.push(t);
+			}*/
+			
 			//console.log(JSON.stringify(temparray));
-			return datawindow;
+			return newwindow;
 		}
 	}
 	// Get all the values of the dataset
