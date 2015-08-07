@@ -38,7 +38,7 @@ var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
 var _ANIMATION_TIME		= 50;
-var LOGGING_ENABLED		= true;
+var LOGGING_ENABLED		= false;
 
 // Variables for filtering
 var PRESS_COMPARE_COUNTER 			= 0;
@@ -106,9 +106,6 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 });
 
 
-// DELETE
-var lockenabled = true; // Temporary
-parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 
 // Handle incoming requests from clients on connection
@@ -361,6 +358,10 @@ function DataHistory() {
 }
 
 
+// DELETE
+var lockenabled = false; // Temporary
+parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
 function DataSetObject(csvfile, xmlfile) {	
 	// Each data value as an object with properties.
@@ -432,7 +433,7 @@ function DataSetObject(csvfile, xmlfile) {
 		else if(lockenabled == true) {
 			var temparray=[];
 
-			var templockcol = 3;
+			var templockcol = 3; //column on lockdown
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
 				data[row][templockcol].locked = true;	
 				temparray.push(data[row][templockcol]);
@@ -445,11 +446,12 @@ function DataSetObject(csvfile, xmlfile) {
 					data_row.push(data[row][col]);
 				}
 			}
-			
+			var c=1;
 			for (var i=0; i<10; i++) { 
-				/*if(templockcol>0) {
-					datawindow[i][templockcol-1] = datawindow[i][templockcol];
-				}*/
+				if(templockcol>0 && templockcol != (templockcol+x)) {
+					datawindow[i][templockcol-x] = datawindow[i][templockcol];
+				}
+				
 				datawindow[i][templockcol] = temparray[i];		
 			}
 			

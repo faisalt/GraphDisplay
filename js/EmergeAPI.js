@@ -83,6 +83,9 @@ var EmergeInterface = Class.extend({
 	widgets : function(feature) {
 		if(feature.undo == true) {
 			//Add undo button, on click, send comms message
+			if($('input#undo_widget').length > 0) {
+				$('input#undo_widget').parent().empty();
+			}
 			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="undo_widget" src="images/undo.png"></input></div>');
 			$('input#undo_widget').on('click', function() {
 				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNDO", Timestamp:timestamp()}));
@@ -94,7 +97,10 @@ var EmergeInterface = Class.extend({
 			});
 		}
 		if(feature.redo == true) {
-			//Add undo button, on click, send comms message
+			//Add redo button, on click, send comms message
+			if($('input#redo_widget').length > 0) {
+				$('input#redo_widget').parent().empty();
+			}
 			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="redo_widget" src="images/redo.png"></input></div>');
 			$('input#redo_widget').on('click', function() {
 				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"REDO", Timestamp:timestamp()}));
@@ -104,9 +110,13 @@ var EmergeInterface = Class.extend({
 					}
 				});
 			});
+			
 		}
 		if(feature.reload == true) {
 			//Add reload button
+			if($('input#reload_widget').length > 0) {
+				$('input#reload_widget').parent().empty();
+			}
 			$('div.widget_box').append('<div class="widgets"><input type="image" onclick="" id="reload_widget" src="images/reload.png"></input></div>');
 			$('input#reload_widget').on('click', function() {
 				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"RELOAD", Timestamp:timestamp()}));
