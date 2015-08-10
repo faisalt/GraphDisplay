@@ -54,6 +54,7 @@ var filterCoordinates = Array();
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
 var DataHistory 		= new DataHistory();
+var LockedData			= new LockedData();
 var DATAMAX_LIMITER		= 0.9;
 var DATAMIN_LIMITER		= 0.3;
 
@@ -357,34 +358,56 @@ function DataHistory() {
 	}
 }
 
-function addArray(arr) {
-	var t=[];
-	for(var i=0; i<arr.length; i++) {
-		t.push(arr[i]);
+function LockedData() {
+	var lockedRows=[], lockedColumns=[];
+	this.addLockedRows=function(index) {
+		
 	}
-	return t;
+	this.addLockedColumns=function(index) {
+		var data = DataSetObject.AllDataVals();
+		var x = DATA_INDEX.getXScrollIndex();
+		var y = DATA_INDEX.getYScrollIndex();
+		index = parseInt(index+x);
+		var temparray = [];
+		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+			data[row][index].locked = true;	
+			temparray.push(data[row][index]); //holds the values for locked down column
+		}
+		lockedColumns.push([index, temparray]);
+	}
+	this.getLockedRows=function() { return lockedRows; }
+	this.getLockedColumns=function() { return lockedColumns; }
+	this.clearLockedRows=function() { lockedRows=[]; }
+	this.clearLockedColumns=function() { lockedColumns=[]; }
 }
 
-function addArrayColumn(arr, arr2, colindex) {
-	var newarray = [];
-	for(var i=0; i<10; i++) {
-		var t=[];
-		for(var j=0; j<10; j++) {
-			if(j == colindex) {
-				t = addArray(arr2);
-			}
-			else {
-				t = arr[i][j];
-			}
-		}
-		newarray.push(t);
+function biggerOrEqualToZero(element, index, array) { return element >= 0; }
+function equalToZero(element, index, array) {  return element == 0; }
+var check = function(val) {
+    if(val != this.myval) {
+        return true;
+    } else return false;
+}
+var checkTrue = function(val) {
+    if(val == this.myval) {
+        return true;
+    } else return false;
+}
+var pcount=0;
+function resetPrintOnce() { pcount = 0;}
+function printOnce(v) {
+	if(pcount<1) {
+		console.log(v);
+		pcount++;
 	}
-	return newarray;
 }
 
 // DELETE
 var templockcol = 3; // Column on lockdown
-var lockenabled = false; // Temporary
+LockedData.addLockedColumns(0);
+LockedData.addLockedColumns(1);
+LockedData.addLockedColumns(2);
+var lockenabled = true; // Temporary
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
@@ -456,48 +479,62 @@ function DataSetObject(csvfile, xmlfile) {
 			return datawindow;
 		}
 		else if(lockenabled == true) {
-			var temparray=[]; // values for locked down column if needed
-			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
-				data[row][templockcol].locked = true;	
-				temparray.push(data[row][templockcol]); //holds the values for locked down column
-			}
-			
+			var lockedColumns = LockedData.getLockedColumns();
+			var lockedColNum = lockedColumns.length;
+			var lockedIndices = [];
+			var lockedIndicesGrid = [];
+			for(var i=0; i<lockedColNum; i++) {
+				if((lockedColumns[i][0] - x) >= 0) {
+					lockedIndices.push((lockedColumns[i][0] - x));
+				}
+				lockedIndicesGrid.push(lockedColumns[i][0]);
+			}			
 			// All this stuff is mainly for the column mode anyway
 			// Need to handle row locking after this - should hopefully be slightly simpler
-			
+			resetPrintOnce();
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					if((templockcol-x) >0) {
-						if(col-x != (templockcol-x)) {
+					//might have to handle case where index is 0
+					if(lockedIndices.length > 0 && lockedIndices.every(biggerOrEqualToZero)) {
+						if(lockedIndices.every(check, {myval:col-x})) {
 							data_row.push(data[row][col]);
 						}
-					}
+					}	
 					else {
-						if(col != parseInt(_NUMCOLS+x)-1)
-						data_row.push(data[row][col]);
+						if(col < parseInt(_NUMCOLS+x)-lockedColNum)
+						data_row.push(data[row][col+lockedColNum]);
 					}
 				}
+				if(lockedIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedIndices.length), data_row.length); }
 				datawindow.push(data_row);
 			}
-			
-			// datawindow up to this point is transmitting values that doesn't include the locked column
-			// somehow need to add the locked columns to the datawindow (if possible) and create a new datawindow
-			// it's best if we send 10x10 values at all times to the C# application
-			
-			
-			var newwindow=[];
-			/*for(var i=0; i<10; i++) {
-				var t=[];
-				for(var j=0; j<10; j++) {
-					if(j<templockcol) {
-						t.push(datawindow[i][j]);
+						
+			for(var i=0; i<lockedColNum; i++) {
+				for(var j=0; j<datawindow.length; j++) {
+					datawindow[j].push(lockedColumns[i][1][j]); //Index 1 is values 
+				}
+			}
+			//TODO - fix below
+			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();
+			var startindex = (datawindow.length - lockedIndicesGrid.length);
+			console.log(JSON.stringify(lockedIndicesGrid) + ", " + startindex); 
+			for(var i=0; i<datawindow.length; i++) {
+				var s=[]; var count=0;resetPrintOnce();
+				for(var j=0; j<datawindow[i].length; j++) {
+					//var index = lockedIndicesGrid.indexOf(j);
+					if(lockedIndicesGrid.every(checkTrue, {myval:j})) {
+						s.push(datawindow[i][startindex]);
+					}
+					else {
+						s.push(datawindow[i][count]);
+						count++;
 					}
 				}
-				newwindow.push(t);
-			}*/
-			
-			//console.log(JSON.stringify(temparray));
+				startindex++;
+				newwindow.push(s);
+			}
+		
 			return newwindow;
 		}
 	}
