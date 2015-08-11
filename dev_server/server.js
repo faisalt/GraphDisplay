@@ -361,7 +361,20 @@ function DataHistory() {
 function LockedData() {
 	var lockedRows=[], lockedColumns=[];
 	this.addLockedRows=function(index) {
-		
+		var data = DataSetObject.AllDataVals();
+		var x = DATA_INDEX.getXScrollIndex();
+		var y = DATA_INDEX.getYScrollIndex();
+		index = parseInt(index+y);
+		var temparray = [];
+		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+			if(row == index) {
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					data[index][col].locked = true;	
+					temparray.push(data[index][col]); //holds the values for locked down column
+				}
+			}
+		}
+		lockedRows.push([index, temparray]);
 	}
 	this.addLockedColumns=function(index) {
 		var data = DataSetObject.AllDataVals();
@@ -407,8 +420,12 @@ function printOnce(v) {
 LockedData.addLockedColumns(0);
 LockedData.addLockedColumns(1);
 LockedData.addLockedColumns(5);
-var col_lockenabled = false;
-var row_lockenabled = true;
+
+LockedData.addLockedRows(0);
+LockedData.addLockedRows(1);
+
+var col_lockenabled = true;
+var row_lockenabled = false;
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
@@ -482,6 +499,9 @@ function DataSetObject(csvfile, xmlfile) {
 		else if(col_lockenabled == true) {
 			// All this stuff is mainly for the column mode anyway
 			// Need to handle row locking after this - should hopefully be slightly simpler
+			// ********************* IMPORTANT - NEED TO HANDLE IF THERE IS A ROW LOCKED - get datawindow with row locked ***************************
+			// Could checked for locked == true on rows, and then if true, get those values
+			
 			var lockedColumns = LockedData.getLockedColumns();
 			var lockedColNum = lockedColumns.length;
 			var lockedIndices = [];
@@ -532,58 +552,68 @@ function DataSetObject(csvfile, xmlfile) {
 				newwindow.push(s);
 			}
 			return newwindow;
-		}
+		}   // --------------------------------------------------------------------------------------------------------------------------
 		else if(row_lockenabled == true) {
 			// All this stuff is mainly for the column mode anyway
 			// Need to handle row locking after this - should hopefully be slightly simpler
-			var lockedRows = LockedData.getlockedRows();
+			var lockedRows = LockedData.getLockedRows();
 			var lockedRowNum = lockedRows.length;
 			var lockedIndices = [];
 			var lockedIndicesGrid = [];
 			for(var i=0; i<lockedRowNum; i++) {
-				if((lockedRows[i][0] - x) >= 0) {
-					lockedIndices.push((lockedRows[i][0] - x));
+				if((lockedRows[i][0] - y) >= 0) {
+					lockedIndices.push((lockedRows[i][0] - y));
 				}
 				lockedIndicesGrid.push(lockedRows[i][0]);
 			}			
 			
+			//console.log(JSON.stringify(lockedRows));
+			console.log(x);
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
-				var data_row = [];
+				var data_row = []; resetPrintOnce();
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
 					if(lockedIndices.length > 0 && lockedIndices.every(biggerOrEqualToZero)) {
-						if(lockedIndices.every(CHECK_FALSE, {myval:col-x})) {
+						if(lockedIndices.every(CHECK_FALSE, {myval:row-y})) {
 							data_row.push(data[row][col]);
 						}
 					}	
 					else {
-						if(col < parseInt(_NUMCOLS+x)-lockedRowNum)
-						data_row.push(data[row][col+lockedRowNum]);
+						if(row < parseInt(_NUMROWS+y)-lockedRowNum)
+						data_row.push(data[row+lockedRowNum][col]);
 					}
 				}
-				if(lockedIndices.length >0) { data_row = data_row.slice((lockedRowNum - lockedIndices.length), data_row.length); }
-				datawindow.push(data_row);
-			}						
-			for(var i=0; i<lockedRowNum; i++) {
-				for(var j=0; j<datawindow.length; j++) {
-					datawindow[j].push(lockedRows[i][1][j]); //Index 1 is values 
+				//if(lockedIndices.length >0) { data_row = data_row.slice((lockedRowNum - lockedIndices.length), data_row.length); } //not for here
+				
+				if(data_row.length > 0) {
+					datawindow.push(data_row);
+				}
+			}	
+			
+			if(lockedIndices.length >0) { 
+				if((lockedRowNum - lockedIndices.length) > 0) {
+					datawindow.splice((0),1);  
 				}
 			}
-			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();			
+			
+			for(var i=0; i<lockedRowNum; i++) {
+				datawindow.push(lockedRows[i][1]); //Index 1 is values 
+			}
+			
+			
+			// Reorder stuff
+			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();		
 			//console.log(JSON.stringify(lockedIndicesGrid) + " | " + startindex + " | datawindow length: " + datawindow.length); 
+			var s=[]; var count=0;
+			var startindex = (datawindow.length - lockedIndicesGrid.length);
 			for(var i=0; i<datawindow.length; i++) {
-				var s=[]; var count=0;
-				var startindex = (datawindow.length - lockedIndicesGrid.length);
-				for(var j=0; j<datawindow[i].length; j++) {
-					if(lockedIndicesGrid.indexOf(j) != -1) {
-						s.push(datawindow[i][startindex]);
-						startindex++;
-					}
-					else if(lockedIndicesGrid.indexOf(j) == -1) {
-						s.push(datawindow[i][count]);
-						count++;
-					}
+				if(lockedIndicesGrid.indexOf(i) != -1) {
+					newwindow.push(datawindow[startindex]);
+					startindex++;
 				}
-				newwindow.push(s);
+				else if(lockedIndicesGrid.indexOf(i) == -1) {
+					newwindow.push(datawindow[count]);
+					count++;
+				}
 			}
 			return newwindow;
 		}
