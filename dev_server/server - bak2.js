@@ -419,7 +419,7 @@ function printOnce(v) {
 // DELETE
 LockedData.addLockedColumns(0);
 LockedData.addLockedColumns(1);
-LockedData.addLockedColumns(9);
+LockedData.addLockedColumns(2);
 
 LockedData.addLockedRows(0);
 LockedData.addLockedRows(1);
@@ -485,6 +485,7 @@ function DataSetObject(csvfile, xmlfile) {
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
 		
+		// TO DO - REMOVE THIS ONCE IMPLEMENTED
 		if(col_lockenabled == false && row_lockenabled == false) {
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
@@ -500,8 +501,6 @@ function DataSetObject(csvfile, xmlfile) {
 			// Need to handle row locking after this - should hopefully be slightly simpler
 			// ********************* IMPORTANT - NEED TO HANDLE IF THERE IS A ROW LOCKED - get datawindow with row locked ***************************
 			// Could checked for locked == true on rows, and then if true, get those values
-			
-			// COULD this work by just getting the datawindow and splicing out the necessary columns?
 			
 			var lockedColumns = LockedData.getLockedColumns();
 			var lockedColNum = lockedColumns.length;
@@ -523,22 +522,43 @@ function DataSetObject(csvfile, xmlfile) {
 						}
 					}	
 					else {
-						if(col < parseInt(_NUMCOLS+x)-lockedColNum) {
-							data_row.push(data[row][col+lockedColNum]);
-						}
+						if(col < parseInt(_NUMCOLS+x)-lockedColNum)
+						data_row.push(data[row][col+lockedColNum]);
 					}
 				}
 				if(lockedIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedIndices.length), data_row.length); }
 				datawindow.push(data_row);
 			}		
-			// Add locked columns into the appropriate indices.
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
-				lockedColumns[i][1].map(function(val) {
+				var newarray = lockedColumns[i][1].map(function(val) {
 					datawindow[count].splice(lockedColumns[i][0], 0, val);
 					count++;
 				});
+				
 			}
+			/*for(var i=0; i<lockedColNum; i++) {
+				for(var j=0; j<datawindow.length; j++) {
+					datawindow[j].push(lockedColumns[i][1][j]); //Index 1 is values 
+				}
+			}
+			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();			
+			//console.log(JSON.stringify(lockedIndicesGrid) + " | " + startindex + " | datawindow length: " + datawindow.length); 
+			for(var i=0; i<datawindow.length; i++) {
+				var s=[]; var count=0;
+				var startindex = (datawindow.length - lockedIndicesGrid.length);
+				for(var j=0; j<datawindow[i].length; j++) {
+					if(lockedIndicesGrid.indexOf(j) != -1) {
+						s.push(datawindow[i][startindex]);
+						startindex++;
+					}
+					else if(lockedIndicesGrid.indexOf(j) == -1) {
+						s.push(datawindow[i][count]);
+						count++;
+					}
+				}
+				newwindow.push(s);
+			}*/
 			return datawindow;
 		}   // --------------------------------------------------------------------------------------------------------------------------
 		else if(row_lockenabled == true) {
