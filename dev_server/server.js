@@ -383,12 +383,13 @@ function LockedData() {
 
 function biggerOrEqualToZero(element, index, array) { return element >= 0; }
 function equalToZero(element, index, array) {  return element == 0; }
-var check = function(val) {
+
+var CHECK_FALSE = function(val) {
     if(val != this.myval) {
         return true;
     } else return false;
 }
-var checkTrue = function(val) {
+var CHECK_TRUE = function(val) {
     if(val == this.myval) {
         return true;
     } else return false;
@@ -403,11 +404,11 @@ function printOnce(v) {
 }
 
 // DELETE
-var templockcol = 3; // Column on lockdown
 LockedData.addLockedColumns(0);
 LockedData.addLockedColumns(1);
-LockedData.addLockedColumns(2);
-var lockenabled = true; // Temporary
+LockedData.addLockedColumns(5);
+var col_lockenabled = false;
+var row_lockenabled = true;
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
@@ -468,7 +469,7 @@ function DataSetObject(csvfile, xmlfile) {
 		var y = DATA_INDEX.getYScrollIndex();
 		
 		// TO DO - REMOVE THIS ONCE IMPLEMENTED
-		if(lockenabled == false) {
+		if(col_lockenabled == false && row_lockenabled == false) {
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				datawindow.push(data_row);
@@ -478,7 +479,9 @@ function DataSetObject(csvfile, xmlfile) {
 			}
 			return datawindow;
 		}
-		else if(lockenabled == true) {
+		else if(col_lockenabled == true) {
+			// All this stuff is mainly for the column mode anyway
+			// Need to handle row locking after this - should hopefully be slightly simpler
 			var lockedColumns = LockedData.getLockedColumns();
 			var lockedColNum = lockedColumns.length;
 			var lockedIndices = [];
@@ -489,15 +492,12 @@ function DataSetObject(csvfile, xmlfile) {
 				}
 				lockedIndicesGrid.push(lockedColumns[i][0]);
 			}			
-			// All this stuff is mainly for the column mode anyway
-			// Need to handle row locking after this - should hopefully be slightly simpler
-			resetPrintOnce();
+			
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					//might have to handle case where index is 0
 					if(lockedIndices.length > 0 && lockedIndices.every(biggerOrEqualToZero)) {
-						if(lockedIndices.every(check, {myval:col-x})) {
+						if(lockedIndices.every(CHECK_FALSE, {myval:col-x})) {
 							data_row.push(data[row][col]);
 						}
 					}	
@@ -508,33 +508,83 @@ function DataSetObject(csvfile, xmlfile) {
 				}
 				if(lockedIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedIndices.length), data_row.length); }
 				datawindow.push(data_row);
-			}
-						
+			}						
 			for(var i=0; i<lockedColNum; i++) {
 				for(var j=0; j<datawindow.length; j++) {
 					datawindow[j].push(lockedColumns[i][1][j]); //Index 1 is values 
 				}
 			}
-			//TODO - fix below
-			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();
-			var startindex = (datawindow.length - lockedIndicesGrid.length);
-			console.log(JSON.stringify(lockedIndicesGrid) + ", " + startindex); 
+			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();			
+			//console.log(JSON.stringify(lockedIndicesGrid) + " | " + startindex + " | datawindow length: " + datawindow.length); 
 			for(var i=0; i<datawindow.length; i++) {
-				var s=[]; var count=0;resetPrintOnce();
+				var s=[]; var count=0;
+				var startindex = (datawindow.length - lockedIndicesGrid.length);
 				for(var j=0; j<datawindow[i].length; j++) {
-					//var index = lockedIndicesGrid.indexOf(j);
-					if(lockedIndicesGrid.every(checkTrue, {myval:j})) {
+					if(lockedIndicesGrid.indexOf(j) != -1) {
 						s.push(datawindow[i][startindex]);
+						startindex++;
 					}
-					else {
+					else if(lockedIndicesGrid.indexOf(j) == -1) {
 						s.push(datawindow[i][count]);
 						count++;
 					}
 				}
-				startindex++;
 				newwindow.push(s);
 			}
-		
+			return newwindow;
+		}
+		else if(row_lockenabled == true) {
+			// All this stuff is mainly for the column mode anyway
+			// Need to handle row locking after this - should hopefully be slightly simpler
+			var lockedRows = LockedData.getlockedRows();
+			var lockedRowNum = lockedRows.length;
+			var lockedIndices = [];
+			var lockedIndicesGrid = [];
+			for(var i=0; i<lockedRowNum; i++) {
+				if((lockedRows[i][0] - x) >= 0) {
+					lockedIndices.push((lockedRows[i][0] - x));
+				}
+				lockedIndicesGrid.push(lockedRows[i][0]);
+			}			
+			
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				var data_row = [];
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					if(lockedIndices.length > 0 && lockedIndices.every(biggerOrEqualToZero)) {
+						if(lockedIndices.every(CHECK_FALSE, {myval:col-x})) {
+							data_row.push(data[row][col]);
+						}
+					}	
+					else {
+						if(col < parseInt(_NUMCOLS+x)-lockedRowNum)
+						data_row.push(data[row][col+lockedRowNum]);
+					}
+				}
+				if(lockedIndices.length >0) { data_row = data_row.slice((lockedRowNum - lockedIndices.length), data_row.length); }
+				datawindow.push(data_row);
+			}						
+			for(var i=0; i<lockedRowNum; i++) {
+				for(var j=0; j<datawindow.length; j++) {
+					datawindow[j].push(lockedRows[i][1][j]); //Index 1 is values 
+				}
+			}
+			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();			
+			//console.log(JSON.stringify(lockedIndicesGrid) + " | " + startindex + " | datawindow length: " + datawindow.length); 
+			for(var i=0; i<datawindow.length; i++) {
+				var s=[]; var count=0;
+				var startindex = (datawindow.length - lockedIndicesGrid.length);
+				for(var j=0; j<datawindow[i].length; j++) {
+					if(lockedIndicesGrid.indexOf(j) != -1) {
+						s.push(datawindow[i][startindex]);
+						startindex++;
+					}
+					else if(lockedIndicesGrid.indexOf(j) == -1) {
+						s.push(datawindow[i][count]);
+						count++;
+					}
+				}
+				newwindow.push(s);
+			}
 			return newwindow;
 		}
 	}
