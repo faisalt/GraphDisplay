@@ -224,6 +224,15 @@ io.sockets.on('connection', function (socket) {
 		//parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
+	
+	socket.on("LOCK_COLUMN", function(data) {
+		console.log("Locking Column " + parseInt(data));
+		LockedData.addLockedColumns(parseInt(data));
+	});
+	socket.on("LOCK_ROW", function(data) {
+		console.log("Locking Row " + parseInt(data));
+		LockedData.addLockedRows(parseInt(data));
+	});
 	/* Undo and Redo commands. */
 	socket.on(ACTION_UNDO, function(data, callback) {
 		DataHistory.undo();
@@ -358,35 +367,76 @@ function DataHistory() {
 	}
 }
 
+function printFriendly(array) {
+	var str="";
+	for(var i=0; i<array.length; i++) {
+		str+=array[i].val+", ";
+	}	
+	console.log(str);
+}
+
 function LockedData() {
-	var lockedRows=[], lockedColumns=[], lockedRowIndices=[], lockedColIndices=[];
+	var lockedRows=[], lockedColumns=[], lockedRowIndices=[], lockedColIndices=[], actualColIndices=[], actualRowIndices=[];
 	this.addLockedRows=function(index) {
 		var data = DataSetObject.AllDataVals();
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
+		actualRowIndices.push(index);
+		var aci = this.getActualColumnIndices();
 		index = parseInt(index+y);
 		var temparray = [];
-		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
-			if(row == index) {
-				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					data[index][col].row_lock = true;	
-					if(data[index][col].col_lock == false)	
-						temparray.push(data[index][col]); //holds the values for locked down column
+		if(aci.length > 0) {
+			var mydata = JSON.parse(JSON.stringify(DataSetObject.getDataWindow().slice(0)));
+			for (var row = 0; row < mydata.length; ++row) { 
+				if(row == parseInt(index-y)) {
+					for (var col = 0; col < mydata[row].length; ++col) {
+						if(aci.every(CHECK_FALSE, {myval:col}))	{
+							mydata[index][col].row_lock = true;	
+							temparray.push(mydata[index][col]); //holds the values for locked down column
+						}
+					}
 				}
 			}
 		}
+		else {
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+				if(row == index) {
+					for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+						data[index][col].row_lock = true;	
+						temparray.push(data[index][col]);
+					}
+				}
+			}
+		}
+		
+		printFriendly(temparray);
 		lockedRows.push([index, temparray]);
 	}
 	this.addLockedColumns=function(index) {
 		var data = DataSetObject.AllDataVals();
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
+		actualColIndices.push(index);
+		var ari = this.getActualRowIndices();
 		index = parseInt(index+x);
 		var temparray = [];
-		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
-			data[row][index].col_lock = true;	
-			temparray.push(data[row][index]); //holds the values for locked down column
+		var tempCount = 0;
+		if(ari.length > 0) {
+			var mydata = JSON.parse(JSON.stringify(DataSetObject.getDataWindow().slice(0)));
+			console.log(JSON.stringify(mydata));
+			for (var row = 0; row < mydata.length; ++row) {  
+				if(ari.every(CHECK_FALSE, {myval:row}))
+					//mydata[row][index].col_lock = true;	
+					temparray.push(mydata[row][index]); //holds the values for locked down column
+			}
 		}
+		else {
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+				data[row][index].col_lock = true;	
+				temparray.push(data[row][index]); //holds the values for locked down column
+			}
+		}
+		printFriendly(temparray);
 		lockedColumns.push([index, temparray]);
 	}
 	this.getLockedRows=function() { return lockedRows; }
@@ -415,6 +465,8 @@ function LockedData() {
 	}
 	this.clearLockedRows=function() { lockedRows=[]; }
 	this.clearLockedColumns=function() { lockedColumns=[]; }
+	this.getActualColumnIndices=function() { return actualColIndices; }
+	this.getActualRowIndices=function() { return actualRowIndices; }
 }
 
 function biggerOrEqualToZero(element, index, array) { return element >= 0; }
@@ -438,15 +490,6 @@ function printOnce(v) {
 		pcount++;
 	}
 }
-
-// DELETE
-LockedData.addLockedColumns(2);
-LockedData.addLockedColumns(0);
-LockedData.addLockedColumns(1);
-
-
-LockedData.addLockedRows(1);
-LockedData.addLockedRows(0);
 
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
@@ -511,6 +554,11 @@ function DataSetObject(csvfile, xmlfile) {
 		var lockedColumns = LockedData.getLockedColumns();
 		var lockedColNum = lockedColumns.length;
 		var lockedColIndices = LockedData.getColumnIndices();
+		var actualRowIndices=LockedData.getActualRowIndices().slice(0);
+		actualRowIndices.sort();
+		var actualColIndices=LockedData.getActualColumnIndices().slice(0);
+		actualColIndices.sort();
+		
 		
 		var lockedRows = LockedData.getLockedRows();
 		var lockedRowNum = lockedRows.length;
@@ -529,6 +577,7 @@ function DataSetObject(csvfile, xmlfile) {
 		}
 		else if(lockedColNum > 0 && lockedRowNum == 0) {
 			/* ************* COL STUFF ************* */
+			console.log("Only col locked");
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
@@ -546,17 +595,17 @@ function DataSetObject(csvfile, xmlfile) {
 				datawindow.push(data_row);
 			}		
 			// Add locked columns into the appropriate indices.
-			var orderedIndices = lockedColIndices.sort();
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
 				lockedColumns[i][1].map(function(val) {
-					datawindow[count].splice(orderedIndices[i], 0, val); count++;
+					datawindow[count].splice(actualColIndices[i], 0, val); count++;
 				});
 			}
 			return datawindow;
 		}
 		else if(lockedColNum == 0 && lockedRowNum > 0) {
 			/* ************* ROW STUFF ************* */			
+			console.log("Only row locked");
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
@@ -572,16 +621,16 @@ function DataSetObject(csvfile, xmlfile) {
 				if(data_row.length > 0) { datawindow.push(data_row); } // Workaround to not add empty rows.
 			}	
 			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { datawindow.splice(0,1); }
-			var orderedIndices = lockedRowIndices.sort();
 			for(var i=0; i<lockedRowNum; i++) {
-				datawindow.splice(orderedIndices[i], 0, lockedRows[i][1]);
+				datawindow.splice(actualRowIndices[i], 0, lockedRows[i][1]);
 			}
 			
 			return datawindow;
 		}
 		else if(lockedColNum > 0 && lockedRowNum > 0) {
 			/* ************* BOTH ROW AND COL HAVE LOCKS ************* */	
-			// TO DO - check if sorting is needed
+			console.log("Both row and col locked");
+			// Needs tidying
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
@@ -602,7 +651,10 @@ function DataSetObject(csvfile, xmlfile) {
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
 				lockedColumns[i][1].map(function(val) {
-					datawindow[count].splice(lockedColumns[i][0], 0, val); count++;
+					//if(actualRowIndices.every(CHECK_FALSE, {myval:count})) {
+						datawindow[count].splice(lockedColumns[i][0], 0, val); 
+					//}
+					count++;
 				});
 			}
 			
@@ -610,7 +662,7 @@ function DataSetObject(csvfile, xmlfile) {
 			for (var row = 0; row < datawindow.length; ++row) {
 				var data_row = [];
 				for (var col = 0; col < datawindow[row].length; ++col) {
-					if(datawindow[row][col].col_lock == false) {
+					if(actualColIndices.every(CHECK_FALSE, {myval:col})) {
 						if(lockedRowIndices.length > 0 && lockedRowIndices.every(biggerOrEqualToZero)) {
 							if(lockedRowIndices.every(CHECK_FALSE, {myval:row})) { //removed -y
 								data_row.push(datawindow[row][col]);
@@ -624,16 +676,18 @@ function DataSetObject(csvfile, xmlfile) {
 				if(data_row.length > 0) { newwindow.push(data_row); } // Workaround to not add empty rows.
 			}	
 			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { newwindow.splice(0,1); }			
+			
 			var lockedRowsUnmodified = JSON.parse(JSON.stringify(lockedRows.slice(0)));
-			var orderedIndices = lockedRowIndices.sort();
+
 			for(var i=0; i<lockedRowNum; i++) {
-				newwindow.splice(orderedIndices[i], 0, lockedRowsUnmodified[i][1]);
+				newwindow.splice(actualRowIndices[i], 0, lockedRowsUnmodified[i][1]);
 			}
-			var orderedIndices = lockedColIndices.sort();
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
 				lockedColumns[i][1].map(function(val) {
-					newwindow[count].splice(orderedIndices[i], 0, val); 
+					//if(actualRowIndices.every(CHECK_FALSE, {myval:count})) {
+						newwindow[count].splice(actualColIndices[i], 0, val); 
+					//}
 					count++;
 				});
 			}			

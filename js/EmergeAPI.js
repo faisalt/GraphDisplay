@@ -233,6 +233,10 @@ var X_AxisInterface = EmergeInterface.extend({
 					}
 				}
 			},
+			interact('.draggable_x').on('doubletap', function(e) {
+				var curr_index = $(e.currentTarget).parent().data('idx');
+				comms.emit("LOCK_COLUMN", curr_index);
+			});
 			interact('.draggable_x').draggable({
 				// enable inertial throwing
 				inertia: false,
@@ -573,6 +577,11 @@ var Y_AxisInterface = EmergeInterface.extend({
 					}
 				}
 			},
+			interact('.draggable_y').on('doubletap', function(e) {
+				var curr_index = $(e.currentTarget).parent().data('idx');
+				console.log("locking");
+				comms.emit("LOCK_ROW", curr_index);
+			});
 			interact('.draggable_y').draggable({
 				// enable inertial throwing
 				inertia: false,

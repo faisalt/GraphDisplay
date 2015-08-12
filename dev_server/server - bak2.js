@@ -359,11 +359,12 @@ function DataHistory() {
 }
 
 function LockedData() {
-	var lockedRows=[], lockedColumns=[];
+	var lockedRows=[], lockedColumns=[], actualColIndices=[], actualRowIndices=[];
 	this.addLockedRows=function(index) {
 		var data = DataSetObject.AllDataVals();
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
+		actualRowIndices.push(index);
 		index = parseInt(index+y);
 		var temparray = [];
 		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
@@ -380,6 +381,7 @@ function LockedData() {
 		var data = DataSetObject.AllDataVals();
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
+		actualColIndices.push(index);
 		index = parseInt(index+x);
 		var temparray = [];
 		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
@@ -392,6 +394,8 @@ function LockedData() {
 	this.getLockedColumns=function() { return lockedColumns; }
 	this.clearLockedRows=function() { lockedRows=[]; }
 	this.clearLockedColumns=function() { lockedColumns=[]; }
+	this.getActualColumnIndices=function( return actualColIndices; )
+	this.getActualRowIndices=function( return actualRowIndices; )
 }
 
 function biggerOrEqualToZero(element, index, array) { return element >= 0; }
