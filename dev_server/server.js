@@ -359,7 +359,7 @@ function DataHistory() {
 }
 
 function LockedData() {
-	var lockedRows=[], lockedColumns=[];
+	var lockedRows=[], lockedColumns=[], lockedRowIndices=[], lockedColIndices=[];
 	this.addLockedRows=function(index) {
 		var data = DataSetObject.AllDataVals();
 		var x = DATA_INDEX.getXScrollIndex();
@@ -369,8 +369,9 @@ function LockedData() {
 		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
 			if(row == index) {
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					data[index][col].locked = true;	
-					temparray.push(data[index][col]); //holds the values for locked down column
+					data[index][col].row_lock = true;	
+					if(data[index][col].col_lock == false)	
+						temparray.push(data[index][col]); //holds the values for locked down column
 				}
 			}
 		}
@@ -383,13 +384,35 @@ function LockedData() {
 		index = parseInt(index+x);
 		var temparray = [];
 		for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
-			data[row][index].locked = true;	
+			data[row][index].col_lock = true;	
 			temparray.push(data[row][index]); //holds the values for locked down column
 		}
 		lockedColumns.push([index, temparray]);
 	}
 	this.getLockedRows=function() { return lockedRows; }
 	this.getLockedColumns=function() { return lockedColumns; }
+	this.getLockedRowIndices = function() {
+		lockedRowIndices=[];
+		var y = DATA_INDEX.getYScrollIndex(); 
+		var lockedRows = this.getLockedRows();
+		for(var i=0; i<lockedRows.length; i++) {
+			if((lockedRows[i][0] - y) >= 0) {
+				lockedRowIndices.push((lockedRows[i][0] - y));
+			}
+		}
+		return lockedRowIndices;
+	}
+	this.getColumnIndices=function() {
+		lockedColIndices=[];
+		var x = DATA_INDEX.getXScrollIndex();
+		var lockedColumns = this.getLockedColumns();
+		for(var i=0; i<lockedColumns.length; i++) {
+			if((lockedColumns[i][0] - x) >= 0) {
+				lockedColIndices.push((lockedColumns[i][0] - x));
+			}
+		}	
+		return lockedColIndices;
+	}
 	this.clearLockedRows=function() { lockedRows=[]; }
 	this.clearLockedColumns=function() { lockedColumns=[]; }
 }
@@ -418,14 +441,9 @@ function printOnce(v) {
 
 // DELETE
 LockedData.addLockedColumns(0);
-LockedData.addLockedColumns(1);
-LockedData.addLockedColumns(9);
-
-LockedData.addLockedRows(0);
+LockedData.addLockedColumns(2);
 LockedData.addLockedRows(1);
 
-var col_lockenabled = true;
-var row_lockenabled = false;
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
@@ -438,7 +456,8 @@ function DataSetObject(csvfile, xmlfile) {
 		this.val=val; // The actual value
 		this.annotated=false; // Whether user has annotated a datapoint (e.g. pulled a bar)
 		this.filtered=false; // Whether this datapoint has been filtered out (i.e. hidden)
-		this.locked=false;
+		this.row_lock=false;
+		this.col_lock=false;
 		this.init = function() { }
 	}
 	
@@ -485,7 +504,16 @@ function DataSetObject(csvfile, xmlfile) {
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
 		
-		if(col_lockenabled == false && row_lockenabled == false) {
+		var lockedColumns = LockedData.getLockedColumns();
+		var lockedColNum = lockedColumns.length;
+		var lockedColIndices = LockedData.getColumnIndices();
+		
+		var lockedRows = LockedData.getLockedRows();
+		var lockedRowNum = lockedRows.length;
+		var lockedRowIndices = LockedData.getLockedRowIndices();
+		
+		
+		if(lockedColNum == 0 && lockedRowNum == 0) {
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				datawindow.push(data_row);
@@ -495,114 +523,122 @@ function DataSetObject(csvfile, xmlfile) {
 			}
 			return datawindow;
 		}
-		else if(col_lockenabled == true) {
-			// All this stuff is mainly for the column mode anyway
-			// Need to handle row locking after this - should hopefully be slightly simpler
-			// ********************* IMPORTANT - NEED TO HANDLE IF THERE IS A ROW LOCKED - get datawindow with row locked ***************************
-			// Could checked for locked == true on rows, and then if true, get those values
-			
-			// COULD this work by just getting the datawindow and splicing out the necessary columns?
-			
-			var lockedColumns = LockedData.getLockedColumns();
-			var lockedColNum = lockedColumns.length;
-			var lockedIndices = [];
-			var lockedIndicesGrid = [];
-			for(var i=0; i<lockedColNum; i++) {
-				if((lockedColumns[i][0] - x) >= 0) {
-					lockedIndices.push((lockedColumns[i][0] - x));
-				}
-				lockedIndicesGrid.push(lockedColumns[i][0]);
-			}			
-			
+		else if(lockedColNum > 0 && lockedRowNum == 0) {
+			/* ************* COL STUFF ************* */
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					if(lockedIndices.length > 0 && lockedIndices.every(biggerOrEqualToZero)) {
-						if(lockedIndices.every(CHECK_FALSE, {myval:col-x})) {
+					if(lockedColIndices.length > 0 && lockedColIndices.every(biggerOrEqualToZero)) {
+						if(lockedColIndices.every(CHECK_FALSE, {myval:col-x})) {
 							data_row.push(data[row][col]);
 						}
-					}	
-					else {
+					} else {
 						if(col < parseInt(_NUMCOLS+x)-lockedColNum) {
 							data_row.push(data[row][col+lockedColNum]);
 						}
 					}
 				}
-				if(lockedIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedIndices.length), data_row.length); }
+				if(lockedColIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedColIndices.length), data_row.length); }
 				datawindow.push(data_row);
 			}		
 			// Add locked columns into the appropriate indices.
+			// TO DO - check if sorting is needed
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
 				lockedColumns[i][1].map(function(val) {
-					datawindow[count].splice(lockedColumns[i][0], 0, val);
-					count++;
+					datawindow[count].splice(lockedColumns[i][0], 0, val); count++;
 				});
 			}
 			return datawindow;
-		}   // --------------------------------------------------------------------------------------------------------------------------
-		else if(row_lockenabled == true) {
-			// All this stuff is mainly for the column mode anyway
-			// Need to handle row locking after this - should hopefully be slightly simpler
-			var lockedRows = LockedData.getLockedRows();
-			var lockedRowNum = lockedRows.length;
-			var lockedIndices = [];
-			var lockedIndicesGrid = [];
-			for(var i=0; i<lockedRowNum; i++) {
-				if((lockedRows[i][0] - y) >= 0) {
-					lockedIndices.push((lockedRows[i][0] - y));
-				}
-				lockedIndicesGrid.push(lockedRows[i][0]);
-			}			
-			
-			//console.log(JSON.stringify(lockedRows));
-			console.log(x);
+		}
+		else if(lockedColNum == 0 && lockedRowNum > 0) {
+			/* ************* ROW STUFF ************* */			
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
-				var data_row = []; resetPrintOnce();
+				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
-					if(lockedIndices.length > 0 && lockedIndices.every(biggerOrEqualToZero)) {
-						if(lockedIndices.every(CHECK_FALSE, {myval:row-y})) {
+					if(lockedRowIndices.length > 0 && lockedRowIndices.every(biggerOrEqualToZero)) {
+						if(lockedRowIndices.every(CHECK_FALSE, {myval:row-y})) {
 							data_row.push(data[row][col]);
 						}
-					}	
-					else {
+					} else {
 						if(row < parseInt(_NUMROWS+y)-lockedRowNum)
 						data_row.push(data[row+lockedRowNum][col]);
 					}
-				}
-				//if(lockedIndices.length >0) { data_row = data_row.slice((lockedRowNum - lockedIndices.length), data_row.length); } //not for here
-				
-				if(data_row.length > 0) {
-					datawindow.push(data_row);
-				}
+				}				
+				if(data_row.length > 0) { datawindow.push(data_row); } // Workaround to not add empty rows.
 			}	
-			
-			if(lockedIndices.length >0) { 
-				if((lockedRowNum - lockedIndices.length) > 0) {
-					datawindow.splice((0),1);  
-				}
+			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { datawindow.splice(0,1); }
+			// TO DO - check if sorting is needed
+			for(var i=0; i<lockedRowNum; i++) {
+				datawindow.splice(lockedRows[i][0], 0, lockedRows[i][1]);
 			}
+			
+			return datawindow;
+		}
+		else if(lockedColNum > 0 && lockedRowNum > 0) {
+			/* ************* BOTH ROW AND COL HAVE LOCKS ************* */	
+			// TO DO - check if sorting is needed
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				var data_row = [];
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					if(lockedColIndices.length > 0 && lockedColIndices.every(biggerOrEqualToZero)) {
+						if(lockedColIndices.every(CHECK_FALSE, {myval:col-x})) {
+							data_row.push(data[row][col]);
+						}
+					} else {
+						if(col < parseInt(_NUMCOLS+x)-lockedColNum) {
+							data_row.push(data[row][col+lockedColNum]);
+						}
+					}
+				}
+				// Below is needed because everytime a locked column disappears from the original datawindow (i.e. goes to -1), we need to adjust.
+				if(lockedColIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedColIndices.length), data_row.length); }
+				datawindow.push(data_row);
+			}
+			for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				lockedColumns[i][1].map(function(val) {
+					datawindow[count].splice(lockedColumns[i][0], 0, val); count++;
+				});
+			}
+			
+			var newwindow=[];
+			for (var row = 0; row < datawindow.length; ++row) {
+				var data_row = [];
+				for (var col = 0; col < datawindow[row].length; ++col) {
+					if(datawindow[row][col].col_lock == false) {
+						if(lockedRowIndices.length > 0 && lockedRowIndices.every(biggerOrEqualToZero)) {
+							if(lockedRowIndices.every(CHECK_FALSE, {myval:row})) { //removed -y
+								data_row.push(datawindow[row][col]);
+							}
+						} else {
+							if(row < parseInt(_NUMROWS)-lockedRowNum) //removed +y
+							data_row.push(datawindow[row+lockedRowNum][col]);
+						}
+					}
+				}				
+				if(data_row.length > 0) { newwindow.push(data_row); } // Workaround to not add empty rows.
+			}	
+			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { newwindow.splice(0,1); }
 			
 			for(var i=0; i<lockedRowNum; i++) {
-				datawindow.push(lockedRows[i][1]); //Index 1 is values 
+				newwindow.splice(lockedRows[i][0], 0, lockedRows[i][1]);
 			}
+			/*for(var i=0; i<lockedColumns.length; i++) {for(var j=0; j<lockedColumns[i].length; j++) {	if(lockedColumns[i][j].row_lock}}*/
 			
-			
-			// Reorder stuff
-			var newwindow=[]; lockedIndicesGrid = lockedIndicesGrid.sort();		
-			//console.log(JSON.stringify(lockedIndicesGrid) + " | " + startindex + " | datawindow length: " + datawindow.length); 
-			var s=[]; var count=0;
-			var startindex = (datawindow.length - lockedIndicesGrid.length);
-			for(var i=0; i<datawindow.length; i++) {
-				if(lockedIndicesGrid.indexOf(i) != -1) {
-					newwindow.push(datawindow[startindex]);
-					startindex++;
-				}
-				else if(lockedIndicesGrid.indexOf(i) == -1) {
-					newwindow.push(datawindow[count]);
+			/*console.log("**********");
+			console.log(JSON.stringify(newwindow[1]) + "\r\n");
+			console.log("**********");
+			for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				lockedColumns[i][1].map(function(val) {
+					if(count == 1) console.log(JSON.stringify(newwindow[count]) + "\r\n");
+					newwindow[count].splice(lockedColumns[i][0], 0, val); 
+					if(count == 1) console.log(JSON.stringify(newwindow[count]) + "\r\n");
 					count++;
-				}
-			}
+				});
+			}*/
+			
 			return newwindow;
 		}
 	}
