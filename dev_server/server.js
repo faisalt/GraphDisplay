@@ -440,9 +440,13 @@ function printOnce(v) {
 }
 
 // DELETE
-LockedData.addLockedColumns(0);
 LockedData.addLockedColumns(2);
+LockedData.addLockedColumns(0);
+LockedData.addLockedColumns(1);
+
+
 LockedData.addLockedRows(1);
+LockedData.addLockedRows(0);
 
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
@@ -542,11 +546,11 @@ function DataSetObject(csvfile, xmlfile) {
 				datawindow.push(data_row);
 			}		
 			// Add locked columns into the appropriate indices.
-			// TO DO - check if sorting is needed
+			var orderedIndices = lockedColIndices.sort();
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
 				lockedColumns[i][1].map(function(val) {
-					datawindow[count].splice(lockedColumns[i][0], 0, val); count++;
+					datawindow[count].splice(orderedIndices[i], 0, val); count++;
 				});
 			}
 			return datawindow;
@@ -568,9 +572,9 @@ function DataSetObject(csvfile, xmlfile) {
 				if(data_row.length > 0) { datawindow.push(data_row); } // Workaround to not add empty rows.
 			}	
 			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { datawindow.splice(0,1); }
-			// TO DO - check if sorting is needed
+			var orderedIndices = lockedRowIndices.sort();
 			for(var i=0; i<lockedRowNum; i++) {
-				datawindow.splice(lockedRows[i][0], 0, lockedRows[i][1]);
+				datawindow.splice(orderedIndices[i], 0, lockedRows[i][1]);
 			}
 			
 			return datawindow;
@@ -619,26 +623,20 @@ function DataSetObject(csvfile, xmlfile) {
 				}				
 				if(data_row.length > 0) { newwindow.push(data_row); } // Workaround to not add empty rows.
 			}	
-			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { newwindow.splice(0,1); }
-			
+			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { newwindow.splice(0,1); }			
+			var lockedRowsUnmodified = JSON.parse(JSON.stringify(lockedRows.slice(0)));
+			var orderedIndices = lockedRowIndices.sort();
 			for(var i=0; i<lockedRowNum; i++) {
-				newwindow.splice(lockedRows[i][0], 0, lockedRows[i][1]);
+				newwindow.splice(orderedIndices[i], 0, lockedRowsUnmodified[i][1]);
 			}
-			/*for(var i=0; i<lockedColumns.length; i++) {for(var j=0; j<lockedColumns[i].length; j++) {	if(lockedColumns[i][j].row_lock}}*/
-			
-			/*console.log("**********");
-			console.log(JSON.stringify(newwindow[1]) + "\r\n");
-			console.log("**********");
+			var orderedIndices = lockedColIndices.sort();
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
 				lockedColumns[i][1].map(function(val) {
-					if(count == 1) console.log(JSON.stringify(newwindow[count]) + "\r\n");
-					newwindow[count].splice(lockedColumns[i][0], 0, val); 
-					if(count == 1) console.log(JSON.stringify(newwindow[count]) + "\r\n");
+					newwindow[count].splice(orderedIndices[i], 0, val); 
 					count++;
 				});
-			}*/
-			
+			}			
 			return newwindow;
 		}
 	}
