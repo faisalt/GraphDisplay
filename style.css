@@ -231,3 +231,11 @@ input#reload_widget {
 }
 
 /*********** End widget stuff ******************/
+
+/*********   Locking stuff    ******************/
+
+.locked {
+	background-color:#D80E0E;
+}
+
+/*********   End locking stuff    *************/

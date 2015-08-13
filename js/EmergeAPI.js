@@ -135,6 +135,7 @@ var X_AxisInterface = EmergeInterface.extend({
 	_XLABELS : [],
 	_COLLENGTH : 0,
 	_XINDEX : 0,
+	_LOCKED_COLS : [],
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLCOLUMNS", _CLIENT, function(data) {
@@ -142,10 +143,9 @@ var X_AxisInterface = EmergeInterface.extend({
 			_XLABELS = callback_data.data;
 			_COLLENGTH = callback_data.data.length;
 			_XINDEX = callback_data.xindex;
+			_LOCKED_COLS=[];
 			if(_XLABELS != "") { callback(); }
 		});
-		
-		
 	},
 	addLoggingListeners : function(settings) {
 		if(LOGGING_ENABLED) {
@@ -235,7 +235,17 @@ var X_AxisInterface = EmergeInterface.extend({
 			},
 			interact('.draggable_x').on('doubletap', function(e) {
 				var curr_index = $(e.currentTarget).parent().data('idx');
-				comms.emit("LOCK_COLUMN", curr_index);
+				if(!$(e.currentTarget).hasClass('locked')) {
+					$(e.currentTarget).addClass('locked');
+					_LOCKED_COLS.push(curr_index);
+					comms.emit("LOCK_COLUMN", curr_index);
+				} else {
+					$(e.currentTarget).removeClass('locked');
+					var l_index = _LOCKED_COLS.indexOf(curr_index);
+					_LOCKED_COLS.splice(l_index, 1);
+					comms.emit("UNLOCK_COLUMN", curr_index);
+				}
+				
 			});
 			interact('.draggable_x').draggable({
 				// enable inertial throwing
@@ -339,9 +349,20 @@ var X_AxisInterface = EmergeInterface.extend({
 			// Push to the graph with explicit normalisation parameters.
 			comms.emit("UPDATE_DATASET_SCROLLX", JSON.stringify({position:wcol}), function(data) {
 				if(data != "") {
+					console.log(JSON.stringify(_LOCKED_COLS));
 					_XLABELS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
-					for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[wcol + i]); }
+					for (var i=0; i<windowsize; ++i) { 
+						setXAxisLabel(i, _XLABELS[wcol + i]);
+						// TO DO - if cols are locked, don't move them
+						/*if(_LOCKED_COLS.length > 0) {
+							_LOCKED_COLS.map(function(val) {
+								if(i != val) { setXAxisLabel(i, _XLABELS[wcol + i]); }
+							});
+						} else {
+							setXAxisLabel(i, _XLABELS[wcol + i]);
+						}*/					
+					}
 					// Update the position of the ghost scrollbars on the lower panel.
 					$("#hscroll .ghost_x").css("left", ((wcol / _COLLENGTH) * 100) + "%");
 				}
@@ -480,6 +501,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 	_YLABELS : [],
 	_ROWLENGTH : 0,
 	_YINDEX : 0,
+	_LOCKED_ROWS : [],
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLROWS", _CLIENT, function(data) {
@@ -487,6 +509,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			_YLABELS = callback_data.data;
 			_ROWLENGTH = callback_data.data.length;
 			_YINDEX = callback_data.yindex;
+			_LOCKED_ROWS=[];
 			if(_YLABELS != "") { callback(); }
 		});
 	},
@@ -579,8 +602,16 @@ var Y_AxisInterface = EmergeInterface.extend({
 			},
 			interact('.draggable_y').on('doubletap', function(e) {
 				var curr_index = $(e.currentTarget).parent().data('idx');
-				console.log("locking");
-				comms.emit("LOCK_ROW", curr_index);
+				if(!$(e.currentTarget).hasClass('locked')) {
+					$(e.currentTarget).addClass('locked');
+					_LOCKED_ROWS.push(curr_index);
+					comms.emit("LOCK_ROW", curr_index);
+				} else {
+					$(e.currentTarget).removeClass('locked');
+					var l_index = _LOCKED_ROWS.indexOf(curr_index);
+					_LOCKED_ROWS.splice(l_index, 1);
+					comms.emit("UNLOCK_ROW", curr_index);
+				}
 			});
 			interact('.draggable_y').draggable({
 				// enable inertial throwing
