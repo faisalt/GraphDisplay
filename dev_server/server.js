@@ -393,10 +393,10 @@ function LockedData() {
 			for (var row = 0; row < mydata.length; ++row) { 
 				if(row == parseInt(actualIndex)) {
 					for (var col = 0; col < mydata[row].length; ++col) {
-						if(aci.every(CHECK_FALSE, {myval:col}))	{
+						//if(aci.every(CHECK_FALSE, {myval:col}))	{
 							mydata[actualIndex][col].row_lock = true;
 							temparray.push(mydata[actualIndex][col]); //holds the values for locked down column
-						}
+						//}
 					}
 				}
 			}
@@ -427,10 +427,10 @@ function LockedData() {
 		if(ari.length > 0) {
 			var mydata = this.getLastLockedDataWindow();
 			for (var row = 0; row < mydata.length; ++row) {  
-				if(ari.every(CHECK_FALSE, {myval:row})) {
+				//if(ari.every(CHECK_FALSE, {myval:row})) {
 					mydata[row][parseInt(actualIndex)].col_lock=true;
 					temparray.push(mydata[row][parseInt(actualIndex)]); //holds the values for locked down column
-				}
+				//}
 			}
 		}
 		else {
@@ -519,17 +519,16 @@ function printOnce(v) {
 
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 /*
-LockedData.addLockedRows(1);
-
-LockedData.addLockedColumns(3);
-
-LockedData.addLockedRows(0);
+LockedData.addLockedColumns(1);
+LockedData.addLockedRows(3);
+LockedData.addLockedColumns(0);*/
+//LockedData.addLockedRows(0);
 //LockedData.addLockedColumns(0);
 //parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
 parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 
-*/
+
 
 /** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
 function DataSetObject(csvfile, xmlfile) {	
@@ -685,7 +684,7 @@ function DataSetObject(csvfile, xmlfile) {
 				datawindow.push(data_row);
 			}
 			
-			for(var i=0; i<lockedColNum; i++) {
+			/*for(var i=0; i<lockedColNum; i++) {
 				var count=0; var count2=0;
 				datawindow.map(function(row) {
 					if(actualRowIndices.every(CHECK_FALSE, {myval:count})) {
@@ -694,7 +693,16 @@ function DataSetObject(csvfile, xmlfile) {
 					}
 					count++;
 				});
+			}*/
+			for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				lockedColumns[i][1].map(function(val) {
+					datawindow[count].splice(lockedColumns[i][0], 0, val);
+					count++;
+				});
 			}
+			
+			
 			var newwindow=[];
 			for (var row = 0; row < datawindow.length; ++row) {
 				var data_row = []; resetPrintOnce();
@@ -716,14 +724,28 @@ function DataSetObject(csvfile, xmlfile) {
 			for(var i=0; i<lockedRowNum; i++) {
 				newwindow.splice(lockedRows[i][0], 0, lockedRows[i][1]);
 			}
+			
 			//console.log(JSON.stringify(lockedColumns));
-			for(var i=0; i<lockedColNum; i++) {
+			/*for(var i=0; i<lockedColNum; i++) {
 				var count=0; var count2=0;
 				newwindow.map(function(row) {
 					if(actualRowIndices.every(CHECK_FALSE, {myval:count})) {
 						row.splice(lockedColumns[i][0], 0, lockedColumns[i][1][count2])
 						count2++;
 					}
+					count++;
+				});
+			}*/
+			for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				lockedColumns[i][1].map(function(val) {
+					if(actualRowIndices.every(CHECK_FALSE, {myval:count})) {
+						newwindow[count].splice(lockedColumns[i][0], 0, val);
+					}
+					else {
+						newwindow[count].splice(lockedColumns[i][0], 1, val);
+					}
+					
 					count++;
 				});
 			}
