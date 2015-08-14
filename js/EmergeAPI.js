@@ -143,7 +143,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			_XLABELS = callback_data.data;
 			_COLLENGTH = callback_data.data.length;
 			_XINDEX = callback_data.xindex;
-			_LOCKED_COLS=[];
+			_LOCKED_COLS=callback_data.lockedColumns;
 			if(_XLABELS != "") { callback(); }
 		});
 	},
@@ -209,11 +209,51 @@ var X_AxisInterface = EmergeInterface.extend({
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
 		
+
 		comms.on("DATASET_X_LABEL_UPDATE", function(data) {
 			var parsed = JSON.parse(data);
 			_XLABELS = parsed.columns;
 			for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
+			
+			_LOCKED_COLS = parsed.lockedColumns;
+			$('div.axis_label_lower').each(function() { 
+				if( $(this).hasClass('locked') ) {
+					$(this).removeClass('locked').addClass('draggable_x').addClass('drag-drop_x');
+					$(this).parent().append($("<div>").addClass("dropzone_x"));
+				}					
+			});
+			if(_LOCKED_COLS.length > 0) {
+				console.log("locked col");
+				$('div.axislabel').each(function() {
+					var that = this;
+					var DIV_TEXT = $(that).find('div.text');
+					_LOCKED_COLS.map(function(val) {
+						if($(that).data('idx') == parseInt(val)) {
+							DIV_TEXT.addClass('locked').removeClass('draggable_x').removeClass('drag-drop_x');
+							$(that).find('div.dropzone_x').remove();
+						}	
+					});
+				});
+			}
 		});
+		$('div.axis_label_lower').each(function() { 
+			if( $(this).hasClass('locked') ) {
+				$(this).removeClass('locked').addClass('draggable_x').addClass('drag-drop_x');
+				$(this).parent().append($("<div>").addClass("dropzone_x"));
+			}						
+		});
+		if(_LOCKED_COLS.length > 0) {
+			console.log("locked col");
+			$('div.axislabel').each(function() {
+				var that = this;
+				_LOCKED_COLS.map(function(val) {
+					if($(that).data('idx') == parseInt(val)) {
+						DIV_TEXT.addClass('locked').removeClass('draggable_x').removeClass('drag-drop_x');
+						$(that).find('div.dropzone_x').remove();
+					}	
+				});
+			});
+		}
 		
 		if(settings.draggableLabels == true) {
 			this.dragMoveListener = function(event) {
@@ -233,19 +273,14 @@ var X_AxisInterface = EmergeInterface.extend({
 					}
 				}
 			},
-			interact('.draggable_x').on('doubletap', function(e) {
+			interact('.axis_label_lower').on('doubletap', function(e) {
 				var curr_index = $(e.currentTarget).parent().data('idx');
 				if(!$(e.currentTarget).hasClass('locked')) {
-					$(e.currentTarget).addClass('locked');
-					_LOCKED_COLS.push(curr_index);
 					comms.emit("LOCK_COLUMN", curr_index);
 				} else {
-					$(e.currentTarget).removeClass('locked');
-					var l_index = _LOCKED_COLS.indexOf(curr_index);
-					_LOCKED_COLS.splice(l_index, 1);
 					comms.emit("UNLOCK_COLUMN", curr_index);
 				}
-				
+				comms.emit("UPDATE_GUI", _CLIENT);
 			});
 			interact('.draggable_x').draggable({
 				// enable inertial throwing

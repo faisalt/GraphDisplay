@@ -127,14 +127,15 @@ io.sockets.on('connection', function (socket) {
 	
 	socket.on("UPDATE_GUI", function(client) {
 		// socket.emit = local, socket.broadcast.emit = global
-		socket.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
-		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
+		socket.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues(), lockedColumns : LockedData.getActualColumnIndices()}));
+		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues(), lockedColumns : LockedData.getActualColumnIndices()}));
 		socket.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
 		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
-		socket.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
-		socket.broadcast.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
+		socket.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues(), lockedRows : LockedData.getActualRowIndices()}));
+		socket.broadcast.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues(), lockedRows : LockedData.getActualRowIndices()}));
 		socket.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
+		
 	});
 	
 	/* Request Handlers */
@@ -145,7 +146,7 @@ io.sockets.on('connection', function (socket) {
 	socket.on(REQUEST_ALLCOLUMNS, function(message, callback) {
 		var cdata = DataSetObject.AllColumnValues();
 		var send_xindex = DATA_INDEX.getXScrollIndex();
-		callback(JSON.stringify({data:cdata, xindex:send_xindex}));
+		callback(JSON.stringify({data:cdata, xindex:send_xindex, lockedColumns : LockedData.getActualColumnIndices()}));
 	});
 	
 	socket.on(REQUEST_ROW_LENGTH, function(message, callback) {
@@ -374,6 +375,7 @@ function DataHistory() {
 	// Reset to the 'start state' of the graph.
 	this.resetAll = function() {
 		DataSetObject.resetData();
+		LockedData.resetLockedData();
 		REDO_MODE = false;
 		UNDO_MODE = false;
 		undoCount = 0; redoCount=0;
@@ -499,6 +501,23 @@ function LockedData() {
 		}
 		var arr_index = mappedColumns.indexOf(parseInt(index + x));
 		if(arr_index > -1) { mappedColumns.splice(arr_index, 1); }
+		var arr_index2 = actualColIndices.indexOf(index);
+		if(arr_index2 > -1) { actualColIndices.splice(arr_index2, 1); }
+	}
+	this.clearLockedRow=function(index) {
+		var y = DATA_INDEX.getYScrollIndex(); 
+		var x = DATA_INDEX.getXScrollIndex();
+		if(lockedRows.length > 0) {
+			for(var i=0; i<lockedRows.length; i++) {
+				if(lockedRows[i][0] == index) {
+					lockedRows.splice(i, 1);
+				}
+			}
+		}
+		var arr_index = mappedRows.indexOf(parseInt(index + x));
+		if(arr_index > -1) { mappedRows.splice(arr_index, 1); }
+		var arr_index2 = actualRowIndices.indexOf(index);
+		if(arr_index2 > -1) { actualRowIndices.splice(arr_index2, 1); }
 	}
 	this.clearLockedRows=function() { lockedRows=[]; }
 	this.clearLockedColumns=function() { lockedColumns=[]; }
@@ -508,6 +527,10 @@ function LockedData() {
 	this.getMappedRows=function() { return mappedRows; }
 	this.setLastLockedDataWindow=function(dw) {	lastDataWindow = JSON.parse(JSON.stringify(dw.slice(0)));	}
 	this.getLastLockedDataWindow=function() { return lastDataWindow; }
+	this.resetLockedData=function() {
+		 lockedRows=[], lockedColumns=[], lockedRowIndices=[], lockedColIndices=[], 
+			actualColIndices=[], actualRowIndices=[], lastDataWindow=[], mappedColumns=[], mappedRows=[];
+	}
 }
 
 function biggerOrEqualToZero(element, index, array) { return element >= 0; }
