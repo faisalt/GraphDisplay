@@ -53,8 +53,9 @@ var filterCoordinates = Array();
 // Dataset to use
 var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOURSFILE); // Initialize the dataset
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
-var DataHistory 		= new DataHistory();
 var LockedData			= new LockedData();
+var LocalIndices		= new LocalIndices();
+var DataHistory 		= new DataHistory();
 var DATAMAX_LIMITER		= 0.9;
 var DATAMIN_LIMITER		= 0.3;
 
@@ -88,6 +89,11 @@ var DATASET_X_SCROLLBAR_UPDATE		= "DATASET_X_SCROLLBAR_UPDATE";
 var DATASET_Y_SCROLLBAR_UPDATE		= "DATASET_Y_SCROLLBAR_UPDATE";
 var DATASET_X_LABEL_UPDATE			= "DATASET_X_LABEL_UPDATE";
 var DATASET_Y_LABEL_UPDATE			= "DATASET_Y_LABEL_UPDATE";
+var UNITYCLIENT_DATASET_WINDOW_UPDATE = "UNITYCLIENT_DATASET_WINDOW_UPDATE";
+
+var LOCKED_CLIENT 					= "";
+var UNITYROOM						= "UNITYROOM";
+var MAINROOM						= "MAINROOM";
 
 // Websocket variables.
 var port			= 8383;
@@ -111,14 +117,17 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 
 // Handle incoming requests from clients on connection
 io.sockets.on('connection', function (socket) {
+	//console.log("A client has connected with ID: " + socket.id);
 	socket.on("clientConnection", function (clientid, callback) {
 		console.log("\r\nClient "+clientid+" has connected! \r\n");
 		_CLIENTCOUNTER++; // Incrememnt the client counter.
+		socket.join(MAINROOM);
 		callback("CONNECTED"); // Once data loaded, etc. respond to client.
     });
 	socket.on("EMERGEClient", function(clientid) {
 		console.log("\r\nClient "+clientid+" has connected!\r\n");
 		_CLIENTCOUNTER++;
+		socket.join(MAINROOM);
 	});
 	/* Relay requests */
 	socket.on(DATASET_WINDOW_UPDATE, function() {
@@ -136,6 +145,16 @@ io.sockets.on('connection', function (socket) {
 		socket.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 		
+	});
+	
+	socket.on("UNITY_SOCKET", function(data) {
+		console.log("UNITY SOCKET HAS CONNECTED");
+		_CLIENTCOUNTER++;
+		socket.emit("UNITY_PING", {client_id:socket.id});
+	});
+	socket.on("UNITY_LOCK", function(data) {
+		LOCKED_CLIENT = data;
+		socket.join(UNITYROOM);
 	});
 	
 	/* Request Handlers */
@@ -166,7 +185,7 @@ io.sockets.on('connection', function (socket) {
 		swapCol(colstoswap.column_1, colstoswap.column_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		DataHistory.add();
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.AllColumnValues()}));
 		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
 	});
@@ -178,8 +197,10 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllColumnValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
-		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
+		
+		socket.to(MAINROOM).emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.to(UNITYROOM).emit(UNITYCLIENT_DATASET_WINDOW_UPDATE, {data:DataSetObject.getDataWindow(), minz:DataSetObject.DataMinValue(), maxz:DataSetObject.DataMaxValue()});
+		socket.to(MAINROOM).emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.AllColumnValues()}));
 	});
 	
 	socket.on(ROW_SWAP, function (message) {
@@ -187,7 +208,7 @@ io.sockets.on('connection', function (socket) {
 		swapRow(rowstoswap.row_1, rowstoswap.row_2);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		DataHistory.add();
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 		socket.broadcast.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.AllRowValues()}));
 		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 	});
@@ -199,7 +220,8 @@ io.sockets.on('connection', function (socket) {
 		// Send back new labels on client GUI
 		callback(JSON.stringify(DataSetObject.AllRowValues()));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
+		socket.broadcast.emit(UNITYCLIENT_DATASET_WINDOW_UPDATE, {data:DataSetObject.getDataWindow(), minz:DataSetObject.DataMinValue(), maxz:DataSetObject.DataMaxValue()});
 		socket.broadcast.emit(DATASET_Y_SCROLLBAR_UPDATE, JSON.stringify({yindex:DATA_INDEX.getYScrollIndex(), ylabels:DataSetObject.AllRowValues()}));
 	});
 	socket.on(SET_ANNOTATED, function(data) {
@@ -232,9 +254,8 @@ io.sockets.on('connection', function (socket) {
 		DataHistory.add(["COLUMN", data]);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 	});
-	
 	socket.on("UNLOCK_COLUMN", function(data) {
-		console.log("Unlocked Column " + parseInt(data));
+		console.log("Unlocking Column " + parseInt(data));
 		LockedData.clearLockedColumn(data);
 	});
 	
@@ -318,7 +339,9 @@ function DataHistory() {
 		DataSetObject.AllColumnValues().slice(0), 
 		DATA_INDEX.getXScrollIndex(), 
 		DATA_INDEX.getYScrollIndex(),
-		""
+		"",
+		LocalIndices.getLocalColumnIndex().slice(0),
+		LocalIndices.getLocalRowIndex().slice(0)
 	]);
 	// Store a copy of the dataset, including indices, row and columns, etc.
 	this.add = function(param) {
@@ -334,7 +357,9 @@ function DataHistory() {
 			DataSetObject.AllColumnValues().slice(0), 
 			DATA_INDEX.getXScrollIndex(), 
 			DATA_INDEX.getYScrollIndex(),
-			param
+			param,
+			LocalIndices.getLocalColumnIndex().slice(0),
+			LocalIndices.getLocalRowIndex().slice(0)
 		]);
 		// Needs to access the data back one step.
 		undoCount = dataHistoryArray.length-1;
@@ -356,6 +381,8 @@ function DataHistory() {
 			DataSetObject.setAllColumnValues(dataHistoryArray[undoCount][2].slice(0)); 
 			DATA_INDEX.setXScrollIndex(dataHistoryArray[undoCount][3]);
 			DATA_INDEX.setYScrollIndex(dataHistoryArray[undoCount][4]);
+			LocalIndices.overrideColumnIndices(dataHistoryArray[undoCount][6].slice(0));
+			LocalIndices.overrideRowIndices(dataHistoryArray[undoCount][7].slice(0));
 			redoCount = undoCount;
 		}
 	}
@@ -385,17 +412,47 @@ function DataHistory() {
 			DataSetObject.AllRowValues().slice(0), 
 			DataSetObject.AllColumnValues().slice(0), 
 			DATA_INDEX.getXScrollIndex(), 
-			DATA_INDEX.getYScrollIndex()
+			DATA_INDEX.getYScrollIndex(),
+			"",
+			LocalIndices.getLocalColumnIndex().slice(0),
+			LocalIndices.getLocalRowIndex().slice(0)
 		]);
 	}
 }
 
-function printFriendly(array) {
-	var str="";
-	for(var i=0; i<array.length; i++) {
-		str+=array[i].val+", ";
-	}	
-	console.log("Locking these values: " + str);
+
+
+function LocalIndices() {
+	var LOCAL_ROW_INDEX	= [0,0,0,0,0,0,0,0,0,0];
+	var LOCAL_COL_INDEX	= [0,0,0,0,0,0,0,0,0,0];
+	this.localColumnIndexChanged=function(index) {
+		var prelockedIndices = LockedData.getActualColumnIndices();
+		if(prelockedIndices.length > 0) {
+			var lockedcount=0;
+			for(var i=0; i<prelockedIndices.length; i++) {
+			}
+		}
+		else {
+			LOCAL_COL_INDEX.splice(parseInt(index+1), 1, 1);
+		}
+	}
+	this.localRowIndexChanged=function(index) {
+		
+	}
+	this.remapRowIndices=function() {}
+	this.remapColumnIndices=function(DIRECTION) {
+		var prelockedIndices = LockedData.getActualColumnIndices();
+		if(prelockedIndices.length == 0) return;
+		if(DIRECTION == "LEFT") {
+			// User has scrolled right, therefore indices need to be shifted left.
+		} else if(DIRECTION == "RIGHT") {
+			// Opposite to previous case.
+		}
+	}
+	this.getLocalColumnIndex = function() { return LOCAL_COL_INDEX; }
+	this.getLocalRowIndex = function() { return LOCAL_ROW_INDEX; }
+	this.overrideColumnIndices=function(col) { LOCAL_COL_INDEX = col; }
+	this.overrideRowIndices=function(row) { LOCAL_ROW_INDEX = row; }
 }
 
 function LockedData() {
@@ -436,6 +493,7 @@ function LockedData() {
 	}
 	this.addLockedColumns=function(index) {
 		var data = DataSetObject.AllDataVals();
+		LocalIndices.localColumnIndexChanged(index);
 		var x = DATA_INDEX.getXScrollIndex();
 		var y = DATA_INDEX.getYScrollIndex();
 		actualColIndices.push(index);
@@ -566,8 +624,6 @@ function DataSetObject(csvfile, xmlfile) {
 		this.val=val; // The actual value
 		this.annotated=false; // Whether user has annotated a datapoint (e.g. pulled a bar)
 		this.filtered=false; // Whether this datapoint has been filtered out (i.e. hidden)
-		this.row_lock=false;
-		this.col_lock=false;
 		this.init = function() { }
 	}
 	
@@ -807,7 +863,15 @@ function DataSetObject(csvfile, xmlfile) {
 
 /* Data Navigation Functions: Handle data scrolling on the x and y axis */
 /** Increment/decrement X axis index. */
-function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); }
+function dataScrollX(pos) {	
+	var current = DATA_INDEX.getXScrollIndex();
+	if(pos > current) {
+		LocalIndices.remapColumnIndices("LEFT");
+	} else if(pos < current) {
+		LocalIndices.remapColumnIndices("RIGHT");
+	}
+	DATA_INDEX.setXScrollIndex(pos); 
+}
 /** Increment/decrement Y axis index. */
 function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); }
 /* End Data Navigation Functions */
@@ -1063,6 +1127,15 @@ function sendBigJSONdata(params) {
 	return JSONString;
 }
 
+/** Show an array legibly. */
+function printFriendly(array) {
+	var str="";
+	for(var i=0; i<array.length; i++) {
+		str+=array[i].val+", ";
+	}	
+	console.log("Locking these values: " + str);
+}
+
 /** Make the DEBUG values legible */
 function parseDebugMessage(message) {
 	var parsedmsg = JSON.parse(message);
@@ -1076,9 +1149,10 @@ function parseDebugMessage(message) {
 	}
 	var rm = DataSetObject.getRowMap();
 	var cm = DataSetObject.getColMap();
-	/*
+	
 	console.log("\r\n");
-	console.log("Row map: " + JSON.stringify(rm));
+	console.log("Col map: " + JSON.stringify(LocalIndices.getLocalColumnIndex()));
+	/*
 	console.log("Col map: " + JSON.stringify(cm));
 	*/
 	console.log("\r\n \r\n");
@@ -1105,3 +1179,15 @@ function reverseRowNumbers(rownum) {
 }
 /** Keep a number within a given range. */
 Number.prototype.clamp = function(min, max) { return Math.min(Math.max(this, min), max); };
+
+/** Move Array element from one position to another. */
+Array.prototype.move = function (old_index, new_index) {
+    if (new_index >= this.length) {
+        var k = new_index - this.length;
+        while ((k--) + 1) {
+            this.push(undefined);
+        }
+    }
+    this.splice(new_index, 0, this.splice(old_index, 1)[0]);
+    return this; // for testing purposes
+};
