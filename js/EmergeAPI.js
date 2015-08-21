@@ -544,7 +544,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			_YLABELS = callback_data.data;
 			_ROWLENGTH = callback_data.data.length;
 			_YINDEX = callback_data.yindex;
-			_LOCKED_ROWS=[];
+			_LOCKED_ROWS=callback_data.lockedRows;
 			if(_YLABELS != "") { callback(); }
 		});
 	},
@@ -615,7 +615,47 @@ var Y_AxisInterface = EmergeInterface.extend({
 			var parsed = JSON.parse(data);
 			_YLABELS = parsed.rows;
 			for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
+			
+			_LOCKED_ROWS = parsed.lockedRows;
+			$('div.axis_label_left').each(function() { 
+				if( $(this).hasClass('locked') ) {
+					$(this).removeClass('locked').addClass('draggable_y').addClass('drag-drop_y');
+					$(this).parent().append($("<div>").addClass("dropzone_y"));
+				}					
+			});
+			if(_LOCKED_ROWS.length > 0) {
+				console.log("locked row");
+				$('div.axislabel').each(function() {
+					var that = this;
+					var DIV_TEXT = $(that).find('div.text');
+					_LOCKED_ROWS.map(function(val) {
+						if($(that).data('idx') == parseInt(val)) {
+							DIV_TEXT.addClass('locked').removeClass('draggable_y').removeClass('drag-drop_y');
+							$(that).find('div.dropzone_y').remove();
+						}	
+					});
+				});
+			}
 		});
+		$('div.axis_label_left').each(function() { 
+			if( $(this).hasClass('locked') ) {
+				$(this).removeClass('locked').addClass('draggable_y').addClass('drag-drop_y');
+				$(this).parent().append($("<div>").addClass("dropzone_y"));
+			}						
+		});
+		if(_LOCKED_ROWS.length > 0) {
+			console.log("locked row");
+			$('div.axislabel').each(function() {
+				var that = this;
+				var DIV_TEXT = $(that).find('div.text');
+				_LOCKED_ROWS.map(function(val) {
+					if($(that).data('idx') == parseInt(val)) {
+						DIV_TEXT.addClass('locked').removeClass('draggable_y').removeClass('drag-drop_y');
+						$(that).find('div.dropzone_y').remove();
+					}	
+				});
+			});
+		}
 		
 		if(settings.draggableLabels == true) {
 			this.dragMoveListener = function(event) {
@@ -635,18 +675,14 @@ var Y_AxisInterface = EmergeInterface.extend({
 					}
 				}
 			},
-			interact('.draggable_y').on('doubletap', function(e) {
+			interact('.axis_label_left').on('doubletap', function(e) {
 				var curr_index = $(e.currentTarget).parent().data('idx');
 				if(!$(e.currentTarget).hasClass('locked')) {
-					$(e.currentTarget).addClass('locked');
-					_LOCKED_ROWS.push(curr_index);
 					comms.emit("LOCK_ROW", curr_index);
 				} else {
-					$(e.currentTarget).removeClass('locked');
-					var l_index = _LOCKED_ROWS.indexOf(curr_index);
-					_LOCKED_ROWS.splice(l_index, 1);
 					comms.emit("UNLOCK_ROW", curr_index);
 				}
+				comms.emit("UPDATE_GUI", _CLIENT);
 			});
 			interact('.draggable_y').draggable({
 				// enable inertial throwing

@@ -175,7 +175,7 @@ io.sockets.on('connection', function (socket) {
 	socket.on(REQUEST_ALLROWS, function(message, callback) {
 		var rdata = DataSetObject.AllRowValues();
 		var send_yindex = DATA_INDEX.getYScrollIndex();
-		callback(JSON.stringify({data:rdata, yindex:send_yindex}));
+		callback(JSON.stringify({data:rdata, yindex:send_yindex, lockedRows : LockedData.getActualRowIndices()}));
 	});
 	/* End Request Handlers*/
 	
@@ -230,7 +230,6 @@ io.sockets.on('connection', function (socket) {
 		var annotated_row = annotated_coords["annotated_coordinate"][0];
 		var annotated_col = annotated_coords["annotated_coordinate"][1];
 		annotateDataPoint(annotated_row, annotated_col);
-		DataHistory.add();
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		//console.log("Row: " + annotated_row + ", Col: "+annotated_col);
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
@@ -263,6 +262,10 @@ io.sockets.on('connection', function (socket) {
 		console.log("Locking Row " + parseInt(data));
 		LockedData.addLockedRows(parseInt(data));
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+	});
+	socket.on("UNLOCK_ROW", function(data) {
+		console.log("Unlocking Row " + parseInt(data));
+		LockedData.clearLockedRow(data);
 	});
 	/* Undo and Redo commands. */
 	socket.on(ACTION_UNDO, function(data, callback) {
@@ -455,6 +458,7 @@ function LocalIndices() {
 	this.overrideRowIndices=function(row) { LOCAL_ROW_INDEX = row; }
 }
 
+/** Handles data locking - i.e. if users want to keep a row or column in place whilst scrolling through the rest of the data. */
 function LockedData() {
 	var lockedRows=[], lockedColumns=[], lockedRowIndices=[], lockedColIndices=[], 
 	actualColIndices=[], actualRowIndices=[], lastDataWindow=[], mappedColumns=[], mappedRows=[];
@@ -474,6 +478,7 @@ function LockedData() {
 			for (var row = 0; row < mydata.length; ++row) { 
 				if(row == parseInt(actualIndex)) {
 					for (var col = 0; col < mydata[row].length; ++col) {
+						mydata[actualIndex][col].lock = true;
 						temparray.push(mydata[actualIndex][col]); //holds the values for locked down column
 					}
 				}
@@ -483,6 +488,7 @@ function LockedData() {
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
 				if(row == index) {
 					for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+						data[index][col].lock = true;
 						temparray.push(data[index][col]);
 					}
 				}
@@ -505,12 +511,14 @@ function LockedData() {
 		if(ari.length > 0) {
 			var mydata = this.getLastLockedDataWindow();
 			for (var row = 0; row < mydata.length; ++row) {  
+				mydata[row][parseInt(actualIndex)].lock = true;
 				temparray.push(mydata[row][parseInt(actualIndex)]); //holds the values for locked down column
 			}
 		}
 		else {
 			var mydata = this.getLastLockedDataWindow();
-			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				mydata[row][actualIndex].lock = true;
 				temparray.push(mydata[row][actualIndex]); //holds the values for locked down column
 			}
 		}
@@ -591,9 +599,6 @@ function LockedData() {
 	}
 }
 
-function biggerOrEqualToZero(element, index, array) { return element >= 0; }
-function equalToZero(element, index, array) {  return element == 0; }
-
 var CHECK_FALSE = function(val) {
     if(val != this.myval) {
         return true;
@@ -624,6 +629,7 @@ function DataSetObject(csvfile, xmlfile) {
 		this.val=val; // The actual value
 		this.annotated=false; // Whether user has annotated a datapoint (e.g. pulled a bar)
 		this.filtered=false; // Whether this datapoint has been filtered out (i.e. hidden)
+		this.lock = false;
 		this.init = function() { }
 	}
 	
@@ -678,13 +684,11 @@ function DataSetObject(csvfile, xmlfile) {
 		actualRowIndices.sort();
 		var actualColIndices=LockedData.getActualColumnIndices().slice(0);
 		actualColIndices.sort();
-		
-		
 		var lockedRows = LockedData.getLockedRows();
 		var lockedRowNum = lockedRows.length;
 		var lockedRowIndices = LockedData.getLockedRowIndices();
 		
-		
+		// If no locks are present.
 		if(lockedColNum == 0 && lockedRowNum == 0) {
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
@@ -696,7 +700,7 @@ function DataSetObject(csvfile, xmlfile) {
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
 		}
-		else if(lockedColNum > 0 && lockedRowNum == 0) { // ************ If only columns are locked *******************
+		else if(lockedColNum > 0 && lockedRowNum == 0) { /* ************ If only columns are locked ***************** */
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
@@ -723,7 +727,7 @@ function DataSetObject(csvfile, xmlfile) {
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
 		}
-		else if(lockedColNum == 0 && lockedRowNum > 0) { // ************ If only rows are locked *******************
+		else if(lockedColNum == 0 && lockedRowNum > 0) { /* ************ If only rows are locked ******************* */
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
@@ -745,8 +749,7 @@ function DataSetObject(csvfile, xmlfile) {
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
 		}
-		else if(lockedColNum > 0 && lockedRowNum > 0) {
-			/* ************* BOTH ROW AND COL HAVE LOCKS ************* */	
+		else if(lockedColNum > 0 && lockedRowNum > 0) { /* ************* BOTH ROW AND COL HAVE LOCKS ************* */	
 			console.log("Both row and col locked \r\n");
 			
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
@@ -936,6 +939,9 @@ function annotateDataPoint(row, col) {
 	var data = DataSetObject.AllDataVals();
 	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	if(data[parseInt(row+yindex)][parseInt(col+xindex)].annotated == false) {
+		DataHistory.add();
+	}
 	data[parseInt(row+yindex)][parseInt(col+xindex)].annotated = true;
 	DataSetObject.setAllDataVals(data);
 }
@@ -1177,6 +1183,8 @@ function emptyBlock() {
 function reverseRowNumbers(rownum) {
 	return (_NUMROWS-1) - rownum;
 }
+function biggerOrEqualToZero(element, index, array) { return element >= 0; }
+function equalToZero(element, index, array) {  return element == 0; }
 /** Keep a number within a given range. */
 Number.prototype.clamp = function(min, max) { return Math.min(Math.max(this, min), max); };
 
