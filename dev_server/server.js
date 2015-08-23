@@ -708,15 +708,17 @@ function DataSetObject(csvfile, xmlfile) {
 					if(data[row][col].col_lock == false) 
 						data_row.push(data[row][col]);
 				}
-				//lockedColIndices.map(function(val) { if(val == -1) data_row.splice(0,1); });
+				// The problem is: when the locked row's original position (if it hadn't been locked) moves out of the window
+				// then the whole thing stutters once and then carries on, i.e. we get the same frame twice
+				lockedColIndices.map(function(val) { 				});
 				
 				if(parseInt(data_row.length + lockedColNum) > _NUMCOLS) {
 					data_row = data_row.slice(0, parseInt(_NUMCOLS-lockedColNum));
 				}
-				else if(parseInt(data_row.length + lockedColNum) < _NUMCOLS) {
+				/*else if(parseInt(data_row.length + lockedColNum) < _NUMCOLS) {
 					var plus = _NUMCOLS - parseInt(data_row.length + lockedColNum);
 					data_row = data_row.slice(0, parseInt(_NUMCOLS-lockedColNum)+plus);
-				}
+				}*/
 				datawindow.push(data_row);
 			}
 			for(var i=0; i<lockedColNum; i++) {
@@ -725,7 +727,7 @@ function DataSetObject(csvfile, xmlfile) {
 					datawindow[count].splice(actualColIndices[i], 0, lockedColumns[i][1][row]);
 					count++;
 				}
-			}			
+			}
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
 		}
