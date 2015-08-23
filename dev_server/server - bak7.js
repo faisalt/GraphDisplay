@@ -701,21 +701,40 @@ function DataSetObject(csvfile, xmlfile) {
 		}
 		else if(lockedColNum > 0 && lockedRowNum == 0) { /* ************ If only columns are locked ***************** */
 			console.log("locked indices: " + JSON.stringify(lockedColIndices));
-
+			/*for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				var data_row = [];
+				var data_row2=[];
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					if(lockedColIndices.length > 0 && lockedColIndices.every(biggerOrEqualToZero)) {
+						if(lockedColIndices.every(CHECK_FALSE, {myval:col-x})) {
+							data_row.push(data[row][col]);
+						}
+					} else {
+						if(col < parseInt(_NUMCOLS+x)-lockedColNum) {
+							data_row.push(data[row][col+lockedColNum]);
+						}
+					}
+				}
+				if(lockedColIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedColIndices.length), data_row.length); }
+				datawindow.push(data_row);
+			}*/		
+			// Add locked columns into the appropriate indices.
+			/*for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				for(var row=parseInt(y); row<parseInt(_NUMROWS+y); row++) {
+					datawindow[count].splice(actualColIndices[i], 0, lockedColumns[i][1][row]);
+					count++;
+				}
+			}*/
 			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
 				var data_row = [];
 				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
 					if(data[row][col].col_lock == false) 
 						data_row.push(data[row][col]);
 				}
-				//lockedColIndices.map(function(val) { if(val == -1) data_row.splice(0,1); });
-				
+				lockedColIndices.map(function(val) { });
 				if(parseInt(data_row.length + lockedColNum) > _NUMCOLS) {
 					data_row = data_row.slice(0, parseInt(_NUMCOLS-lockedColNum));
-				}
-				else if(parseInt(data_row.length + lockedColNum) < _NUMCOLS) {
-					var plus = _NUMCOLS - parseInt(data_row.length + lockedColNum);
-					data_row = data_row.slice(0, parseInt(_NUMCOLS-lockedColNum)+plus);
 				}
 				datawindow.push(data_row);
 			}
@@ -725,7 +744,9 @@ function DataSetObject(csvfile, xmlfile) {
 					datawindow[count].splice(actualColIndices[i], 0, lockedColumns[i][1][row]);
 					count++;
 				}
-			}			
+			}
+
+			
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
 		}

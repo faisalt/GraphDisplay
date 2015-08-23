@@ -141,7 +141,7 @@ var X_AxisInterface = EmergeInterface.extend({
 		comms.emit("REQUEST_ALLCOLUMNS", _CLIENT, function(data) {
 			var callback_data = JSON.parse(data);
 			_XLABELS = callback_data.data;
-			_COLLENGTH = callback_data.data.length;
+			_COLLENGTH = callback_data.col_length;
 			_XINDEX = callback_data.xindex;
 			_LOCKED_COLS=callback_data.lockedColumns;
 			if(_XLABELS != "") { callback(); }
@@ -246,6 +246,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			console.log("locked col");
 			$('div.axislabel').each(function() {
 				var that = this;
+				var DIV_TEXT = $(that).find('div.text');
 				_LOCKED_COLS.map(function(val) {
 					if($(that).data('idx') == parseInt(val)) {
 						DIV_TEXT.addClass('locked').removeClass('draggable_x').removeClass('drag-drop_x');
@@ -388,7 +389,7 @@ var X_AxisInterface = EmergeInterface.extend({
 					_XLABELS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
 					for (var i=0; i<windowsize; ++i) { 
-						setXAxisLabel(i, _XLABELS[wcol + i]);
+						setXAxisLabel(i, _XLABELS[i]);
 						// TO DO - if cols are locked, don't move them
 						/*if(_LOCKED_COLS.length > 0) {
 							_LOCKED_COLS.map(function(val) {
@@ -454,7 +455,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 			
 			if(settings.reverse == true) { $("#hscroll .nub_x").css("right", clampLowerPercent - (((_XINDEX / _COLLENGTH) * 100)) + "%"); }
 			else { $("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); }			
-			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
+			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[i]); }
 		}
 		comms.on("DATASET_X_SCROLLBAR_UPDATE", function(data) {
 			var parsed = JSON.parse(data);
@@ -465,7 +466,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			$("#hscroll .ghost_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); 
 			if(settings.reverse == true) { $("#hscroll .nub_x").css("right", clampLowerPercent - (((_XINDEX / _COLLENGTH) * 100)) + "%"); }
 			else { $("#hscroll .nub_x").css("left", ((_XINDEX / _COLLENGTH) * 100) + "%"); } 
-			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[_XINDEX + i]); }
+			for (var i=0; i<windowsize; ++i) { setXAxisLabel(i, _XLABELS[i]); }
 		});
 		
 		// Touch event handlers
