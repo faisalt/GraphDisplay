@@ -248,14 +248,10 @@ io.sockets.on('connection', function (socket) {
 	});
 	
 	socket.on("LOCK_COLUMN", function(data) {
-		var lockedRows = LockedData.getLockedRows();
-		if(lockedRows.length == 0) {
-			console.log("Locking Column " + parseInt(data));
-			LockedData.addLockedColumns(parseInt(data));
-			DataHistory.add(["COLUMN", data]);
-			parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		}
-		else  { console.log("One or more rows are already locked"); }
+		console.log("Locking Column " + parseInt(data));
+		LockedData.addLockedColumns(parseInt(data));
+		DataHistory.add(["COLUMN", data]);
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 	});
 	socket.on("UNLOCK_COLUMN", function(data) {
 		console.log("Unlocking Column " + parseInt(data));
@@ -263,13 +259,9 @@ io.sockets.on('connection', function (socket) {
 	});
 	
 	socket.on("LOCK_ROW", function(data) {
-		var lockedColumns = LockedData.getLockedColumns();
-		if(lockedColumns.length == 0) {
-			console.log("Locking Row " + parseInt(data));
-			LockedData.addLockedRows(parseInt(data));
-			parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		}
-		else { console.log("One or more columns are already locked"); }
+		console.log("Locking Row " + parseInt(data));
+		LockedData.addLockedRows(parseInt(data));
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 	});
 	socket.on("UNLOCK_ROW", function(data) {
 		console.log("Unlocking Row " + parseInt(data));
@@ -478,13 +470,30 @@ function LockedData() {
 		mappedRows.push(parseInt(index + y))
 		actualRowIndices.push(index);
 		var actualIndex = index;
+		var aci = this.getActualColumnIndices();
 		index = parseInt(index+y);
 		var temparray = [];
-		
-		var mydata = this.getLastLockedDataWindow();
-		var globalRowIndex = mydata[actualIndex][0].row_id;
-		temparray = data[globalRowIndex];
-		
+		if(aci.length > 0) {
+			var mydata = this.getLastLockedDataWindow();
+			for (var row = 0; row < mydata.length; ++row) { 
+				if(row == parseInt(actualIndex)) {
+					for (var col = 0; col < mydata[row].length; ++col) {
+						mydata[actualIndex][col].lock = true;
+						temparray.push(mydata[actualIndex][col]); //holds the values for locked down column
+					}
+				}
+			}
+		}
+		else {
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) { 
+				if(row == index) {
+					for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+						data[index][col].lock = true;
+						temparray.push(data[index][col]);
+					}
+				}
+			}
+		}
 		printFriendly(temparray);
 		lockedRows.push([actualIndex, temparray]);
 	}
@@ -499,15 +508,20 @@ function LockedData() {
 		var ari = this.getActualRowIndices();
 		index = parseInt(index+x);
 		var temparray = [];
-
-		var mydata = this.getLastLockedDataWindow();
-		var globalColIndex = mydata[0][actualIndex].col_id;
-		
-		for (var row = 0; row < DataSetObject.TotalMaxRows(); ++row) {
-			data[row][actualIndex].lock = true;
-			temparray.push(data[row][globalColIndex]); //holds the values for locked down column
+		if(ari.length > 0) {
+			var mydata = this.getLastLockedDataWindow();
+			for (var row = 0; row < mydata.length; ++row) {  
+				mydata[row][parseInt(actualIndex)].lock = true;
+				temparray.push(mydata[row][parseInt(actualIndex)]); //holds the values for locked down column
+			}
 		}
-
+		else {
+			var mydata = this.getLastLockedDataWindow();
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				mydata[row][actualIndex].lock = true;
+				temparray.push(mydata[row][actualIndex]); //holds the values for locked down column
+			}
+		}
 		printFriendly(temparray);
 		lockedColumns.push([actualIndex, temparray]);
 	}
@@ -710,10 +724,9 @@ function DataSetObject(csvfile, xmlfile) {
 			// Add locked columns into the appropriate indices.
 			for(var i=0; i<lockedColNum; i++) {
 				var count=0;
-				for(var row=parseInt(y); row<parseInt(_NUMROWS+y); row++) {
-					datawindow[count].splice(actualColIndices[i], 0, lockedColumns[i][1][row]);
-					count++;
-				}
+				lockedColumns[i][1].map(function(val) {
+					datawindow[count].splice(actualColIndices[i], 0, val); count++;
+				});
 			}
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
@@ -734,14 +747,72 @@ function DataSetObject(csvfile, xmlfile) {
 				if(data_row.length > 0) { datawindow.push(data_row); } // Workaround to not add empty rows.
 			}	
 			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { datawindow.splice(0,1); }
-			
 			for(var i=0; i<lockedRowNum; i++) {
-				var lockedRowChunk=[];
-				for(var col=parseInt(x); col<parseInt(_NUMCOLS+x); col++) { lockedRowChunk.push(lockedRows[i][1][col]); }
-				datawindow.splice(actualRowIndices[i], 0, lockedRowChunk);
+				datawindow.splice(actualRowIndices[i], 0, lockedRows[i][1]);
 			}
 			LockedData.setLastLockedDataWindow(datawindow);
 			return datawindow;
+		}
+		else if(lockedColNum > 0 && lockedRowNum > 0) { /* ************* BOTH ROW AND COL HAVE LOCKS ************* */	
+			console.log("Both row and col locked \r\n");
+			
+			for (var row = parseInt(y); row < parseInt(_NUMROWS+y); ++row) {
+				var data_row = []; resetPrintOnce();
+				for (var col = parseInt(x); col < parseInt(_NUMCOLS+x); ++col) {
+					if(lockedColIndices.length > 0 && lockedColIndices.every(biggerOrEqualToZero)) {
+						if(lockedColIndices.every(CHECK_FALSE, {myval:col-x})) {
+							data_row.push(data[row][col]);
+						}
+					} else {
+						if(col < parseInt(_NUMCOLS+x)-lockedColNum) {
+							data_row.push(data[row][col+lockedColNum]);
+						}
+					}
+				}
+				// Below is needed because everytime a locked column disappears from the original datawindow (i.e. goes to -1), we need to adjust.
+				if(lockedColIndices.length >0) { data_row = data_row.slice((lockedColNum - lockedColIndices.length), data_row.length); }
+				datawindow.push(data_row);
+			}
+			for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				lockedColumns[i][1].map(function(val) {
+					datawindow[count].splice(lockedColumns[i][0], 0, val);	count++;
+				});
+			}
+			var newwindow=[];
+			for (var row = 0; row < datawindow.length; ++row) {
+				var data_row = []; resetPrintOnce();
+				for (var col = 0; col < datawindow[row].length; ++col) {
+					if(actualColIndices.every(CHECK_FALSE, {myval:col})) {
+						if(lockedRowIndices.length > 0 && lockedRowIndices.every(biggerOrEqualToZero)) {
+							if(lockedRowIndices.every(CHECK_FALSE, {myval:row})) { //removed -y
+								data_row.push(datawindow[row][col]);
+							}
+						} else {
+							if(row < parseInt(_NUMROWS)-lockedRowNum) //removed +y
+							data_row.push(datawindow[row+lockedRowNum][col]);
+						}
+					}
+				}				
+				if(data_row.length > 0) { newwindow.push(data_row); } // Workaround to not add empty rows.
+			}	
+			if(lockedRowIndices.length > 0 && (lockedRowNum - lockedRowIndices.length) > 0) { newwindow.splice(0,1); }			
+			for(var i=0; i<lockedRowNum; i++) {
+				newwindow.splice(lockedRows[i][0], 0, lockedRows[i][1]);
+			}
+			for(var i=0; i<lockedColNum; i++) {
+				var count=0;
+				lockedColumns[i][1].map(function(val) {
+					if(actualRowIndices.every(CHECK_FALSE, {myval:count})) {
+						newwindow[count].splice(lockedColumns[i][0], 0, val);
+					} else {
+						newwindow[count].splice(lockedColumns[i][0], 1, val);
+					}
+					count++;
+				});
+			}
+			LockedData.setLastLockedDataWindow(newwindow);
+			return newwindow;
 		}
 	}
 	// Get all the values of the dataset
@@ -837,22 +908,12 @@ function swapRow(r1, r2) {
 /** Update all columns, rows and data of the entire dataset. */
 function updateGlobalDataSet(axis, rc1, rc2) {
 	var data = DataSetObject.AllDataVals();
-	var currentWindow = DataSetObject.getDataWindow();
 	if(axis == "COLUMN") {
 		var cols = DataSetObject.AllColumnValues();
 		var colmap = DataSetObject.getColMap();
 		var xindex = DATA_INDEX.getXScrollIndex();
 		var lockeddata = LockedData.getLockedColumns();
-		var rc1_orig = rc1;
-		var rc2_orig = rc2;
 		rc1 = xindex+rc1; rc2 = xindex+rc2;
-		
-		console.log("User wants to swap " + rc1 + " with " + rc2);
-		console.log("Actual swapping indices: " + currentWindow[0][rc1_orig].col_id + " with " + currentWindow[0][rc2_orig].col_id);
-		
-		rc1 = currentWindow[0][rc1_orig].col_id;
-		rc2 = currentWindow[0][rc2_orig].col_id
-		
 		cols = swap(cols, rc1, rc2);
 		colmap = swap(colmap, rc1, rc2);
 		data = swapInner(data, rc1, rc2);
@@ -864,16 +925,7 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		var rows = DataSetObject.AllRowValues();
 		var rowmap = DataSetObject.getRowMap();
 		var yindex = DATA_INDEX.getYScrollIndex();
-		var rc1_orig = rc1;
-		var rc2_orig = rc2;
 		rc1 = yindex+rc1; rc2 = yindex+rc2;
-		
-		console.log("User wants to swap " + rc1 + " with " + rc2);
-		console.log("Actual swapping indices: " + currentWindow[rc1_orig][0].row_id + " with " + currentWindow[rc2_orig][0].row_id);
-		
-		rc1 = currentWindow[rc1_orig][0].row_id;
-		rc2 = currentWindow[rc2_orig][0].row_id;
-		
 		rows = swap(rows, rc1, rc2);
 		data = swap(data, rc1, rc2);
 		rowmap = swap(rowmap, rc1, rc2);
