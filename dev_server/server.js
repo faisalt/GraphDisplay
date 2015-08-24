@@ -583,6 +583,7 @@ function LockedData() {
 		// Re-insert locked column that has been taken out.
 		// TO DO - this is buggy, need to fix
 		console.log("Re-inserting column at position: " + globalColIndex);
+		
 		for (var row = 0; row < DataSetObject.TotalMaxRows(); ++row) {
 			data[row].splice(globalColIndex, 0, temp[row]);
 		}
@@ -663,6 +664,7 @@ function DataSetObject(csvfile, xmlfile) {
 		this.col_lock = false;
 		this.row_id=0;
 		this.col_id=0;
+		this.original_col_id=0;
 		this.col_text="";
 		this.row_text="";
 		this.init = function() { }
@@ -696,6 +698,7 @@ function DataSetObject(csvfile, xmlfile) {
 			temp_data.push(_CSVDATA[row][col]);
 			var dataobj = new dataValObject(count, _CSVDATA[row][col], row-1, col-1);
 			dataobj.col_id = parseInt(col-1);
+			dataobj.original_col_id = parseInt(col-1);
 			dataobj.row_id = parseInt(row-1);
 			dataobj.col_text = allCols[parseInt(col-1)];
 			dataobj.row_text = allRows[parseInt(row-1)];
@@ -1170,8 +1173,8 @@ function parseDebugMessage(message) {
 	var cm = DataSetObject.getColMap();
 	
 	console.log("\r\n");
-	console.log(JSON.stringify(DataSetObject.getColumnLabelWindow()));
-	console.log(JSON.stringify(DataSetObject.getRowLabelWindow()));
+	//console.log(JSON.stringify(DataSetObject.getColumnLabelWindow()));
+	//console.log(JSON.stringify(DataSetObject.getRowLabelWindow()));
 	/*
 	console.log("Col map: " + JSON.stringify(LocalIndices.getLocalColumnIndex()));
 	console.log("Col map: " + JSON.stringify(cm));
