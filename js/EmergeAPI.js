@@ -389,15 +389,7 @@ var X_AxisInterface = EmergeInterface.extend({
 					_XLABELS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
 					for (var i=0; i<windowsize; ++i) { 
-						setXAxisLabel(i, _XLABELS[i]);
-						// TO DO - if cols are locked, don't move them
-						/*if(_LOCKED_COLS.length > 0) {
-							_LOCKED_COLS.map(function(val) {
-								if(i != val) { setXAxisLabel(i, _XLABELS[wcol + i]); }
-							});
-						} else {
-							setXAxisLabel(i, _XLABELS[wcol + i]);
-						}*/					
+						setXAxisLabel(i, _XLABELS[i]);				
 					}
 					// Update the position of the ghost scrollbars on the lower panel.
 					$("#hscroll .ghost_x").css("left", ((wcol / _COLLENGTH) * 100) + "%");
@@ -543,7 +535,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 		comms.emit("REQUEST_ALLROWS", _CLIENT, function(data) {
 			var callback_data = JSON.parse(data);
 			_YLABELS = callback_data.data;
-			_ROWLENGTH = callback_data.data.length;
+			_ROWLENGTH = callback_data.row_length;
 			_YINDEX = callback_data.yindex;
 			_LOCKED_ROWS=callback_data.lockedRows;
 			if(_YLABELS != "") { callback(); }
@@ -791,7 +783,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 				if(data != "") {
 					_YLABELS = JSON.parse(data);
 					// Update the column labels to reflect the new window.
-					for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[wrow + i]); }
+					for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[i]); }
 					// Update the position of the ghost scrollbars on the left panel.
 					$("#vscroll .ghost_y").css("left", ((wrow / _ROWLENGTH) * 100) + "%");
 				}
@@ -851,7 +843,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%");
 			if(settings.reverse == true) { $("#vscroll .nub_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); }
 			else { $("#vscroll .nub_y").css("right", clampUpperPercent - (((_YINDEX / _ROWLENGTH) * 100)) + "%"); } 
-			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
+			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[i]); }
 		}
 		comms.on("DATASET_Y_SCROLLBAR_UPDATE", function(data) {
 			var parsed = JSON.parse(data);
@@ -862,7 +854,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			$("#vscroll .ghost_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%");
 			if(settings.reverse == true) { $("#vscroll .nub_y").css("left", ((_YINDEX / _ROWLENGTH) * 100) + "%"); }
 			else { $("#vscroll .nub_y").css("right", clampUpperPercent - (((_YINDEX / _ROWLENGTH) * 100)) + "%"); }  
-			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[_YINDEX + i]); }
+			for (var i=0; i<windowsize; ++i) { setYAxisLabel(i, _YLABELS[i]); }
 		});
 		
 		$(".scroll_y").bind("touchmove", function(event) {	
