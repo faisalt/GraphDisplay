@@ -51,7 +51,8 @@ span.title {
 	float:right;
 	text-align:right;
 	font-size:1.5em;
-	background-color:#FFFFC8;
+	/*background-color:#FFFFC8;*/
+	background-color:white;
 	z-index:2;
 	color:black;
 	/*Change below for display size and resolution*/
@@ -62,11 +63,11 @@ span.title {
 
 
 .axis_label.drag-active_y, .axis_label.drag-active_x {
-	background-color:orange;
+	background-color:#C1FDB6;
 }
 
 .drop-target_y, .drop-target_x {
-	background-color:orange;
+	background-color:#C1FDB6;
 }
 
 .drag-active_y, .drag-active_x {
@@ -235,7 +236,7 @@ input#reload_widget {
 /*********   Locking stuff    ******************/
 
 .locked {
-	background-color:#D80E0E;
+	background-color:#FF4A4A;
 }
 
 /*********   End locking stuff    *************/

@@ -827,6 +827,15 @@ function DataSetObject(csvfile, xmlfile) {
 			}
 		}
 	}
+	this.remapOriginalData = function() {
+		var data = this.AllDataVals();
+		for(var row=0; row<data.length; row++) {
+			for(var col=0;col<data[row].length; col++) {
+				data[row][col].original_col_id = parseInt(col);
+				data[row][col].original_row_id = parseInt(row);
+			}
+		}
+	}
 	// Functions below need a reference table - if resetting only the columns, or only the rows.
 	this.resetColumnData = function() {	}
 	this.resetRowData = function() { }
@@ -883,6 +892,9 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		colmap = swap(colmap, rc1, rc2);
 		data = swapInner(data, rc1, rc2);
 		DataSetObject.setColMap(colmap);
+		// Here for now
+		DataSetObject.remapData();
+		DataSetObject.remapOriginalData();
 	}
 	// Update rows and dataset
 	if(axis == "ROW") {
@@ -904,6 +916,9 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		rowmap = swap(rowmap, rc1, rc2);
 		DataSetObject.setAllRowValues(rows);
 		DataSetObject.setRowMap(rowmap);
+		// Here for now
+		DataSetObject.remapData();
+		DataSetObject.remapOriginalData();
 	}
 	// This should be updating the entire dataset (kept separate from datawindow)
 	DataSetObject.setAllDataVals(data); 
