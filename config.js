@@ -17,7 +17,7 @@ var HOST = "148.88.226.122";
 var DS_URL = "http://"+HOST+"/GraphDisplay/data/";
 
 // Dataset to use
-var FORCE_DS = "Rainfall-v2";
+var FORCE_DS = "EU_Values";
 
 // Should AJAX calls use the cache?
 $.ajaxSetup({ cache: false });

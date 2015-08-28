@@ -200,7 +200,8 @@ var X_AxisInterface = EmergeInterface.extend({
 				.addClass("control axislabel x")
 				.attr("id", "axislabel_x_" + i)
 				.data("axis", "x").data("idx", i)
-				.append($("<div>").addClass("dropzone_x"));
+				.append($("<div>").addClass("dropzone_x"))
+				.append('<img class="padlock unlocked" src="images/padlock_open.png"></img>');
 				$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
 			}
 			$("div#loweraxis").find("div#axislabel_x_9").css("margin-right", "0px");
@@ -220,6 +221,7 @@ var X_AxisInterface = EmergeInterface.extend({
 				if( $(this).hasClass('locked') ) {
 					$(this).removeClass('locked').addClass('draggable_x').addClass('drag-drop_x');
 					$(this).parent().append($("<div>").addClass("dropzone_x"));
+					$(this).parent().append($(this).parent().find('img.padlock'));
 				}					
 			});
 			if(_LOCKED_COLS.length > 0) {
@@ -240,6 +242,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			if( $(this).hasClass('locked') ) {
 				$(this).removeClass('locked').addClass('draggable_x').addClass('drag-drop_x');
 				$(this).parent().append($("<div>").addClass("dropzone_x"));
+				$(this).parent().append($(this).parent().find('img.padlock'));
 			}						
 		});
 		if(_LOCKED_COLS.length > 0) {
@@ -274,12 +277,18 @@ var X_AxisInterface = EmergeInterface.extend({
 					}
 				}
 			},
-			interact('.axis_label_lower').on('doubletap', function(e) {
+			$('img.padlock').on('click', function(e) {
 				var curr_index = $(e.currentTarget).parent().data('idx');
-				if(!$(e.currentTarget).hasClass('locked')) {
+				if(!$(e.currentTarget).hasClass('label_locked')) {
 					comms.emit("LOCK_COLUMN", curr_index);
+					$(e.currentTarget).attr('src', 'images/padlock_closed.png');
+					$(e.currentTarget).removeClass('unlocked');
+					$(e.currentTarget).addClass('label_locked');
 				} else {
 					comms.emit("UNLOCK_COLUMN", curr_index);
+					$(e.currentTarget).attr('src', 'images/padlock_open.png');
+					$(e.currentTarget).removeClass('label_locked');
+					$(e.currentTarget).addClass('unlocked');
 				}
 				comms.emit("UPDATE_GUI", _CLIENT);
 			});
@@ -501,11 +510,14 @@ var X_AxisInterface = EmergeInterface.extend({
 				}
 			}
 		});
-		
+		console.log(_COLLENGTH);
 		$('#rightarrow').bind("touchstart, click", function(event) {
 			var that = $(this);
 			that.attr("src", "images/rightarrow_selected.png");
-			if(target_wCol < (_COLLENGTH)-windowsize && target_wCol > -1) {
+			console.log("target: " + target_wCol);
+			console.log("window: " + parseInt(_COLLENGTH-windowsize));
+			if(target_wCol < parseInt(_COLLENGTH-windowsize)-1 && target_wCol > -1) {
+				console.log("ok");
 				target_wCol += 1; scrollAnimate();
 			}
 		});
@@ -581,7 +593,8 @@ var Y_AxisInterface = EmergeInterface.extend({
 				.addClass("control axislabel y")
 				.attr("id", "axislabel_y_" + i)
 				.data("axis", "y").data("idx", i)
-				.append($("<div>").addClass("dropzone_y"));
+				.append($("<div>").addClass("dropzone_y"))
+				.append('<img class="padlock unlocked" src="images/padlock_open.png"></img>');
 				$("#axislabel_y_" + i).find("div.text").append($('<span class="spantext_y">'));
 			}
 			$("div#leftaxis").find("div#axislabel_y_9").css("margin-right", "0px");
@@ -594,7 +607,8 @@ var Y_AxisInterface = EmergeInterface.extend({
 				.addClass("control axislabel y")
 				.attr("id", "axislabel_y_" + i)
 				.data("axis", "y").data("idx", i)
-				.append($("<div>").addClass("dropzone_y"));
+				.append($("<div>").addClass("dropzone_y"))
+				.append('<img class="padlock unlocked" src="images/padlock_open.png"></img>');
 				$("#axislabel_y_" + i).find("div.text").append($('<span class="spantext_y">'));
 			}
 			$("div#leftaxis").find("div#axislabel_y_0").css("margin-right", "0px");
@@ -614,6 +628,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 				if( $(this).hasClass('locked') ) {
 					$(this).removeClass('locked').addClass('draggable_y').addClass('drag-drop_y');
 					$(this).parent().append($("<div>").addClass("dropzone_y"));
+					$(this).parent().append($(this).parent().find('img.padlock'));
 				}					
 			});
 			if(_LOCKED_ROWS.length > 0) {
@@ -634,6 +649,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			if( $(this).hasClass('locked') ) {
 				$(this).removeClass('locked').addClass('draggable_y').addClass('drag-drop_y');
 				$(this).parent().append($("<div>").addClass("dropzone_y"));
+				$(this).parent().append($(this).parent().find('img.padlock'));
 			}						
 		});
 		if(_LOCKED_ROWS.length > 0) {
@@ -668,12 +684,18 @@ var Y_AxisInterface = EmergeInterface.extend({
 					}
 				}
 			},
-			interact('.axis_label_left').on('doubletap', function(e) {
+			$('img.padlock').on('click', function(e) {
 				var curr_index = $(e.currentTarget).parent().data('idx');
-				if(!$(e.currentTarget).hasClass('locked')) {
+				if(!$(e.currentTarget).hasClass('label_locked')) {
 					comms.emit("LOCK_ROW", curr_index);
+					$(e.currentTarget).attr('src', 'images/padlock_closed.png');
+					$(e.currentTarget).removeClass('unlocked');
+					$(e.currentTarget).addClass('label_locked');
 				} else {
 					comms.emit("UNLOCK_ROW", curr_index);
+					$(e.currentTarget).attr('src', 'images/padlock_open.png');
+					$(e.currentTarget).removeClass('label_locked');
+					$(e.currentTarget).addClass('unlocked');
 				}
 				comms.emit("UPDATE_GUI", _CLIENT);
 			});

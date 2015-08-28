@@ -31,8 +31,8 @@ var _WINDOWSIZE			= 10;
 var _COLLENGTH			= 0;
 var _ROWLENGTH			= 0;
 var _DATAREPO			= "http://localhost/GraphDisplay/data/";
-var _CSVFILE			= "Rainfall-v2.csv";
-var _XMLCOLOURSFILE		= "Rainfall-v2.metadata";
+var _CSVFILE			= "EU_Values.csv";
+var _XMLCOLOURSFILE		= "EU_Values.metadata";
 var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
@@ -557,6 +557,7 @@ function LockedData() {
 			data[row].splice(globalColIndex, 0, temp[row]);
 		}
 		DataSetObject.remapData(); // IMPORTANT !
+		DataSetObject.remapOriginalData();
 	}
 	this.clearLockedRow=function(index) {
 		var data = DataSetObject.AllDataVals();
@@ -829,6 +830,7 @@ function DataSetObject(csvfile, xmlfile) {
 	}
 	this.remapOriginalData = function() {
 		var data = this.AllDataVals();
+		console.log("remapping original vals");
 		for(var row=0; row<data.length; row++) {
 			for(var col=0;col<data[row].length; col++) {
 				data[row][col].original_col_id = parseInt(col);
