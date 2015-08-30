@@ -130,20 +130,22 @@ var EmergeInterface = Class.extend({
 	}
 });
 
-
 var X_AxisInterface = EmergeInterface.extend({
 	_XLABELS : [],
 	_COLLENGTH : 0,
 	_XINDEX : 0,
 	_LOCKED_COLS : [],
+	ENABLESWAP:false,
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLCOLUMNS", _CLIENT, function(data) {
+			var LENGTH_HACK = 1; // Hack if there are weird issues with data length;
 			var callback_data = JSON.parse(data);
 			_XLABELS = callback_data.data;
-			_COLLENGTH = callback_data.col_length;
+			_COLLENGTH = callback_data.col_length - LENGTH_HACK;
 			_XINDEX = callback_data.xindex;
 			_LOCKED_COLS=callback_data.lockedColumns;
+			ENABLESWAP=false;
 			if(_XLABELS != "") { callback(); }
 		});
 	},
@@ -154,7 +156,7 @@ var X_AxisInterface = EmergeInterface.extend({
 				if(!$(e.target).is('div#loweraxis') && !$(e.target).is('div.control') && !$(e.target).is('div.text') && !$(e.target).is('div.dropzone') && !$(e.target).is('div.widget_box') 
 				&& !$(e.target).is('div.widgets') && !$(e.target).is('img#leftarrow') && !$(e.target).is('img#uparrow') && !$(e.target).is('img#downarrow') && !$(e.target).is('img#rightarrow') 
 				&& !$(e.target).is('div#hscroll') && !$(e.target).is('div#vscroll') && !$(e.target).is('input#undo_widget') && !$(e.target).is('input#redo_widget') && !$(e.target).is('input#reload_widget')
-				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext')) {
+				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext') && !$(e.target).is('img.padlock')) {
 					//Click or touch is outside any function buttons
 					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"NON_FUNCTIONAL", Timestamp:timestamp()}));
 				}
@@ -168,10 +170,6 @@ var X_AxisInterface = EmergeInterface.extend({
 					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
 				}
 			});
-			$('div.text').on('click',function() {
-				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_CLICK", Timestamp:timestamp()}));
-			});
-
 		}
 	},
 	generateColumnLabels : function(settings) {
@@ -188,7 +186,8 @@ var X_AxisInterface = EmergeInterface.extend({
 				.addClass("control axislabel x")
 				.attr("id", "axislabel_x_" + i)
 				.data("axis", "x").data("idx", i)
-				.append($("<div>").addClass("dropzone_x"));
+				.append($("<div>").addClass("dropzone_x"))
+				.append('<img class="padlock unlocked" src="images/padlock_open.png"></img>');
 				$("#axislabel_x_" + i).find("div.text").append($('<span class="spantext">'));
 			}
 			$("div#loweraxis").find("div#axislabel_x_0").css("margin-right", "0px");
@@ -222,6 +221,9 @@ var X_AxisInterface = EmergeInterface.extend({
 					$(this).removeClass('locked').addClass('draggable_x').addClass('drag-drop_x');
 					$(this).parent().append($("<div>").addClass("dropzone_x"));
 					$(this).parent().append($(this).parent().find('img.padlock'));
+					$(this).parent().find('img.padlock').attr('src', 'images/padlock_open.png');
+					$(this).parent().find('img.padlock').removeClass('label_locked');
+					$(this).parent().find('img.padlock').addClass('unlocked');
 				}					
 			});
 			if(_LOCKED_COLS.length > 0) {
@@ -233,6 +235,9 @@ var X_AxisInterface = EmergeInterface.extend({
 						if($(that).data('idx') == parseInt(val)) {
 							DIV_TEXT.addClass('locked').removeClass('draggable_x').removeClass('drag-drop_x');
 							$(that).find('div.dropzone_x').remove();
+							$(that).find('img.padlock').attr('src', 'images/padlock_closed.png');
+							$(that).find('img.padlock').removeClass('unlocked');
+							$(that).find('img.padlock').addClass('label_locked');
 						}	
 					});
 				});
@@ -243,6 +248,9 @@ var X_AxisInterface = EmergeInterface.extend({
 				$(this).removeClass('locked').addClass('draggable_x').addClass('drag-drop_x');
 				$(this).parent().append($("<div>").addClass("dropzone_x"));
 				$(this).parent().append($(this).parent().find('img.padlock'));
+				$(this).parent().find('img.padlock').attr('src', 'images/padlock_open.png');
+				$(this).parent().find('img.padlock').removeClass('label_locked');
+				$(this).parent().find('img.padlock').addClass('unlocked');
 			}						
 		});
 		if(_LOCKED_COLS.length > 0) {
@@ -254,12 +262,20 @@ var X_AxisInterface = EmergeInterface.extend({
 					if($(that).data('idx') == parseInt(val)) {
 						DIV_TEXT.addClass('locked').removeClass('draggable_x').removeClass('drag-drop_x');
 						$(that).find('div.dropzone_x').remove();
+						$(that).find('img.padlock').attr('src', 'images/padlock_closed.png');
+						$(that).find('img.padlock').removeClass('unlocked');
+						$(that).find('img.padlock').addClass('label_locked');
 					}	
 				});
 			});
 		}
 		
 		if(settings.draggableLabels == true) {
+			if(LOGGING_ENABLED) {
+				interact('div.text').on('tap',function() {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_CLICK", Timestamp:timestamp()}));
+				});
+			}
 			this.dragMoveListener = function(event) {
 				var target = event.target,
 					// keep the dragged position in the data-x/data-y attributes
@@ -284,11 +300,13 @@ var X_AxisInterface = EmergeInterface.extend({
 					$(e.currentTarget).attr('src', 'images/padlock_closed.png');
 					$(e.currentTarget).removeClass('unlocked');
 					$(e.currentTarget).addClass('label_locked');
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
 				} else {
 					comms.emit("UNLOCK_COLUMN", curr_index);
 					$(e.currentTarget).attr('src', 'images/padlock_open.png');
 					$(e.currentTarget).removeClass('label_locked');
 					$(e.currentTarget).addClass('unlocked');
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
 				}
 				comms.emit("UPDATE_GUI", _CLIENT);
 			});
@@ -328,9 +346,7 @@ var X_AxisInterface = EmergeInterface.extend({
 						ENABLESWAP = true;
 					} else { 
 						ENABLESWAP = false; 
-						
 					}
-					
 					//remove feedback (highlighting) from the target being moved to and also the target
 					var a = $('div.drag-active_x').get(0);
 					var b = $('div.drop-target_x').get(0);
@@ -365,14 +381,7 @@ var X_AxisInterface = EmergeInterface.extend({
 							}
 						}
 					}
-					else {
-						if(LOGGING_ENABLED) { 
-							if(DRAGCOUNT > 0) {
-								comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_FAILED", Timestamp:timestamp()}));
-								DRAGCOUNT=0;
-							}
-						}
-					}
+					else {	}
 					//event.relatedTarget.classList.remove('drag-active_x');
 					$a_parent.find('.draggable_x').get(0).classList.remove('drop-target_x');
 					
@@ -380,6 +389,12 @@ var X_AxisInterface = EmergeInterface.extend({
 				ondropdeactivate: function (event) {
 					event.relatedTarget.classList.remove('drag-active_x');
 					event.target.classList.remove('drag-active_x');
+					if(LOGGING_ENABLED) { 
+						if(DRAGCOUNT > 0 && ENABLESWAP == false) {
+							comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_FAILED", Timestamp:timestamp()}));
+							DRAGCOUNT=0;
+						}
+					}
 				}
 			});
 		}
@@ -436,10 +451,11 @@ var X_AxisInterface = EmergeInterface.extend({
 			$('img#rightarrow').css({ 'bottom':'0.5%', 'right':'0.01%' });
 			$('img#leftarrow').css({ 'bottom':'0.5%', 'left':'0.01%' });
 		}
-		
+		// If there isn't enough time to sort stuff out (visual stuff anyway).
+		var HACK = 2;
 		var hscroll_size = (windowsize / _COLLENGTH)*100;
 		if(hscroll_size < 5) hscroll_size=5;
-		LOWERSCROLLNUB = Math.round(hscroll_size);
+		LOWERSCROLLNUB = Math.round(hscroll_size - HACK);
 		
 		$("#hscroll .nub_x").css("width", LOWERSCROLLNUB+"%");
 		$("#hscroll .ghost_x").css("width", LOWERSCROLLNUB+"%");
@@ -510,13 +526,12 @@ var X_AxisInterface = EmergeInterface.extend({
 				}
 			}
 		});
-		console.log(_COLLENGTH);
 		$('#rightarrow').bind("touchstart, click", function(event) {
 			var that = $(this);
 			that.attr("src", "images/rightarrow_selected.png");
 			console.log("target: " + target_wCol);
 			console.log("window: " + parseInt(_COLLENGTH-windowsize));
-			if(target_wCol < parseInt(_COLLENGTH-windowsize)-1 && target_wCol > -1) {
+			if(target_wCol < parseInt(_COLLENGTH-windowsize) && target_wCol > -1) {
 				console.log("ok");
 				target_wCol += 1; scrollAnimate();
 			}
@@ -530,6 +545,14 @@ var X_AxisInterface = EmergeInterface.extend({
 		});	
 		$('#rightarrow').on("touchend", function(event) {	var that = $(this);	that.attr("src", "images/rightarrow.png"); });
 		$('#leftarrow').on("touchend", function(event) {	var that = $(this);	that.attr("src", "images/leftarrow.png"); });
+		if(LOGGING_ENABLED) {
+			interact('.nub_x').on('tap',function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
+			});
+			interact('.ghost_x').on('tap',function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
+			});
+		}
 	}
 });
 
@@ -542,6 +565,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 	_ROWLENGTH : 0,
 	_YINDEX : 0,
 	_LOCKED_ROWS : [],
+	ENABLESWAP:false,
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
 		comms.emit("REQUEST_ALLROWS", _CLIENT, function(data) {
@@ -550,6 +574,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			_ROWLENGTH = callback_data.row_length;
 			_YINDEX = callback_data.yindex;
 			_LOCKED_ROWS=callback_data.lockedRows;
+			ENABLESWAP=false;
 			if(_YLABELS != "") { callback(); }
 		});
 	},
@@ -560,7 +585,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 				if(!$(e.target).is('div#loweraxis') && !$(e.target).is('div.control') && !$(e.target).is('div.text') && !$(e.target).is('div.dropzone') && !$(e.target).is('div.widget_box') 
 				&& !$(e.target).is('div.widgets') && !$(e.target).is('img#leftarrow') && !$(e.target).is('img#uparrow') && !$(e.target).is('img#downarrow') && !$(e.target).is('img#rightarrow') 
 				&& !$(e.target).is('div#hscroll') && !$(e.target).is('div#vscroll') && !$(e.target).is('input#undo_widget') && !$(e.target).is('input#redo_widget') && !$(e.target).is('input#reload_widget')
-				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext')) {
+				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext') && !$(e.target).is('img.padlock')) {
 					//Click or touch is outside any function buttons
 					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"NON_FUNCTIONAL", Timestamp:timestamp()}));
 				}
@@ -574,10 +599,6 @@ var Y_AxisInterface = EmergeInterface.extend({
 					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
 				}
 			});
-			$('div.text').on('click',function() {
-				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_CLICK", Timestamp:timestamp()}));
-			});
-
 		}
 	},
 	generateRowLabels : function(settings) {
@@ -629,6 +650,9 @@ var Y_AxisInterface = EmergeInterface.extend({
 					$(this).removeClass('locked').addClass('draggable_y').addClass('drag-drop_y');
 					$(this).parent().append($("<div>").addClass("dropzone_y"));
 					$(this).parent().append($(this).parent().find('img.padlock'));
+					$(this).parent().find('img.padlock').attr('src', 'images/padlock_open.png');
+					$(this).parent().find('img.padlock').removeClass('label_locked');
+					$(this).parent().find('img.padlock').addClass('unlocked');
 				}					
 			});
 			if(_LOCKED_ROWS.length > 0) {
@@ -640,6 +664,9 @@ var Y_AxisInterface = EmergeInterface.extend({
 						if($(that).data('idx') == parseInt(val)) {
 							DIV_TEXT.addClass('locked').removeClass('draggable_y').removeClass('drag-drop_y');
 							$(that).find('div.dropzone_y').remove();
+							$(that).find('img.padlock').attr('src', 'images/padlock_closed.png');
+							$(that).find('img.padlock').removeClass('unlocked');
+							$(that).find('img.padlock').addClass('label_locked');
 						}	
 					});
 				});
@@ -650,6 +677,9 @@ var Y_AxisInterface = EmergeInterface.extend({
 				$(this).removeClass('locked').addClass('draggable_y').addClass('drag-drop_y');
 				$(this).parent().append($("<div>").addClass("dropzone_y"));
 				$(this).parent().append($(this).parent().find('img.padlock'));
+				$(this).parent().find('img.padlock').attr('src', 'images/padlock_open.png');
+				$(this).parent().find('img.padlock').removeClass('label_locked');
+				$(this).parent().find('img.padlock').addClass('unlocked');
 			}						
 		});
 		if(_LOCKED_ROWS.length > 0) {
@@ -661,6 +691,9 @@ var Y_AxisInterface = EmergeInterface.extend({
 					if($(that).data('idx') == parseInt(val)) {
 						DIV_TEXT.addClass('locked').removeClass('draggable_y').removeClass('drag-drop_y');
 						$(that).find('div.dropzone_y').remove();
+						$(that).find('img.padlock').attr('src', 'images/padlock_closed.png');
+						$(that).find('img.padlock').removeClass('unlocked');
+						$(that).find('img.padlock').addClass('label_locked');
 					}	
 				});
 			});
@@ -691,14 +724,21 @@ var Y_AxisInterface = EmergeInterface.extend({
 					$(e.currentTarget).attr('src', 'images/padlock_closed.png');
 					$(e.currentTarget).removeClass('unlocked');
 					$(e.currentTarget).addClass('label_locked');
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
 				} else {
 					comms.emit("UNLOCK_ROW", curr_index);
 					$(e.currentTarget).attr('src', 'images/padlock_open.png');
 					$(e.currentTarget).removeClass('label_locked');
 					$(e.currentTarget).addClass('unlocked');
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
 				}
 				comms.emit("UPDATE_GUI", _CLIENT);
 			});
+			if(LOGGING_ENABLED) {
+				interact('div.text').on('tap',function() {
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_CLICK", Timestamp:timestamp()}));
+				});
+			}
 			interact('.draggable_y').draggable({
 				// enable inertial throwing
 				inertia: false,
@@ -773,14 +813,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 							}
 						}
 					}
-					else {
-						if(LOGGING_ENABLED) { 
-							if(DRAGCOUNT > 0) {
-								comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_FAILED", Timestamp:timestamp()}));
-								DRAGCOUNT=0;
-							}
-						}
-					}
+					else {	}
 					//event.relatedTarget.classList.remove('drag-active_y');
 					$a_parent.find('.draggable_y').get(0).classList.remove('drop-target_y');
 					
@@ -788,6 +821,12 @@ var Y_AxisInterface = EmergeInterface.extend({
 				ondropdeactivate: function (event) {
 					event.relatedTarget.classList.remove('drag-active_y');
 					event.target.classList.remove('drag-active_y');
+					if(LOGGING_ENABLED) { 
+						if(DRAGCOUNT > 0 && ENABLESWAP == false) {
+							comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LABEL_DRAG_FAILED", Timestamp:timestamp()}));
+							DRAGCOUNT=0;
+						}
+					}
 				}
 			});
 		}
@@ -938,5 +977,13 @@ var Y_AxisInterface = EmergeInterface.extend({
 		});	
 		$('#downarrow').bind("touchend", function(event) { var that = $(this); that.attr("src", "images/rightarrow.png"); });
 		$('#uparrow').bind("touchend", function(event) { var that = $(this); that.attr("src", "images/leftarrow.png"); });
+		if(LOGGING_ENABLED) {
+			interact('.nub_y').on('tap',function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
+			});
+			interact('.ghost_y').on('tap',function() {
+				comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SCROLLBAR", Timestamp:timestamp()}));
+			});
+		}
 	}
 });

@@ -3,7 +3,6 @@
 * Handles communication between various clients, e.g. interface panels and the EMERGE application.
 * Updates dataset, informs about interactions, stores state variables.
 *
-* @author Faisal T.
 * Created 29-05-2015.
 */
 
@@ -11,9 +10,13 @@
 /*
 *
 * TO DO;
+* - Sort out what happens if other panels are added (e.g. data reset handling)
+* - ASSIGN IDs TO ROWS AND COLUMNS FOR TRACKING EVENTS:
+* 		- reset individual panels while preserving the row orders, etc. of the other.
+* 		- UNDO/REDO functionality: store state (store indices rather than actual dataset).
+* - Make data values into data objects so they have properties like id, annotated, and filtered.
 *
 * NOTE: In C#, dataobject accessed using following example syntax - parsedData["data"][x][y]["val"];
-*
 */
 
 
@@ -546,10 +549,12 @@ function LockedData() {
 		
 		var arr_index = mappedColumnIndices.indexOf(globalColIndex);
 		if(arr_index > -1) { mappedColumnIndices.splice(arr_index, 1); }
+		
 		var arr_index2 = actualColIndices.indexOf(index);
 		if(arr_index2 > -1) { actualColIndices.splice(arr_index2, 1); }
 		var arr_index3 = originalColIndices.indexOf(globalColIndex);
 		if(arr_index3 > -1) { originalColIndices.splice(arr_index3, 1); }
+		console.log(insertCount + " column to subract");
 		globalColIndex = parseInt(globalColIndex - insertCount);
 		
 		// Re-insert locked column that has been taken out.
@@ -588,6 +593,7 @@ function LockedData() {
 		if(arr_index3 > -1) { originalRowIndices.splice(arr_index3, 1); }
 		
 		globalRowIndex = parseInt(globalRowIndex - insertCount);
+		
 		
 		// Re-insert locked row that has been taken out.
 		data.splice(globalRowIndex, 0, temp);
@@ -854,8 +860,10 @@ function DataSetObject(csvfile, xmlfile) {
 			for(var col=0;col<data[row].length; col++) {
 				var temp = col;
 				locked.map(function(val) {
-					if(temp == val) { colCount++; }
-					temp++; // Checks for subsequent locked columns.
+					if(temp == val) { 
+						colCount++;
+					}
+					temp++;
 				});
 				data[row][col].original_col_id = parseInt(colCount);
 				colCount++;
@@ -870,8 +878,10 @@ function DataSetObject(csvfile, xmlfile) {
 		for(var row=0; row<data.length; row++) {
 			var temp = row;
 			locked.map(function(val) {
-				if(temp == val) { rowCount++; }
-				temp++; // Checks if there are subsequent locked rows.
+				if(temp == val) { 
+					rowCount++;
+				}
+				temp++;
 			});
 			for(var col=0;col<data[row].length; col++) {
 				data[row][col].original_row_id = parseInt(rowCount);
@@ -879,9 +889,13 @@ function DataSetObject(csvfile, xmlfile) {
 			rowCount++;
 		}
 	}
-	// Unused functions (but could be interesting).
+	// Functions below need a reference table - if resetting only the columns, or only the rows.
 	this.resetColumnData = function() {	}
 	this.resetRowData = function() { }
+	this.setRowMap = function(newrows) { rowmap = newrows; }
+	this.setColMap = function(newcols) { colmap = newcols; }
+	this.getRowMap = function() { return rowmap	}
+	this.getColMap = function() { return colmap; }
 }
 
 /* Data Navigation Functions: Handle data scrolling on the x and y axis */
@@ -919,6 +933,7 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 	var currentWindow = DataSetObject.getDataWindow();
 	if(axis == "COLUMN") {
 		var cols = DataSetObject.AllColumnValues();
+		var colmap = DataSetObject.getColMap();
 		var xindex = DATA_INDEX.getXScrollIndex();
 		var rc1_orig = rc1;
 		var rc2_orig = rc2;		
@@ -934,29 +949,45 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 			data[row][rc1].original_col_id = rc2_o;
 			data[row][rc1].col_id = rc2;
 		}
+		
+		colmap = swap(colmap, rc1, rc2);
 		data = swapInner(data, rc1, rc2);
+		DataSetObject.setColMap(colmap);
+				
+		// Here for now
+		//DataSetObject.remapData();
 	}
 	// Update rows and dataset
 	if(axis == "ROW") {
 		var rows = DataSetObject.AllRowValues();
+		var rowmap = DataSetObject.getRowMap();
 		var yindex = DATA_INDEX.getYScrollIndex();
 		var rc1_orig = rc1;
 		var rc2_orig = rc2;
+		
+		console.log("User wants to swap " + rc1 + " with " + rc2);
+		console.log("Actual swapping indices: " + currentWindow[rc1_orig][0].row_id + " with " + currentWindow[rc2_orig][0].row_id);
 		
 		rc1 = currentWindow[rc1_orig][0].row_id;
 		rc1_o = currentWindow[rc1_orig][0].original_row_id;
 		rc2 = currentWindow[rc2_orig][0].row_id;
 		rc2_o = currentWindow[rc2_orig][0].original_row_id;
-		
+		console.log("here " + DataSetObject.TotalMaxColumns());
 		for (var col = 0; col < DataSetObject.TotalMaxColumns()-1; ++col) {
 			data[rc2][col].original_row_id = rc1_o;
 			data[rc2][col].row_id = rc1;
 			data[rc1][col].original_row_id = rc2_o;
 			data[rc1][col].row_id = rc2;
 		}
+		console.log("here2");
 		rows = swap(rows, rc1, rc2);
 		data = swap(data, rc1, rc2);
+		rowmap = swap(rowmap, rc1, rc2);
 		DataSetObject.setAllRowValues(rows);
+		
+		
+		// Here for now
+		//DataSetObject.remapData();
 	}
 	// This should be updating the entire dataset (kept separate from datawindow)
 	DataSetObject.setAllDataVals(data); 
@@ -976,7 +1007,6 @@ function annotateDataPoint(row, col) {
 	
 	if(data[actual_x][actual_y].annotated == false) {
 		DataHistory.add();
-		logData(","+timestamp()+",ANNOTATIE_BAR, ANNOTATION, EMERGE_SYSTEM");
 	}
 	data[actual_x][actual_y].annotated = true;
 	DataSetObject.setAllDataVals(data);
@@ -1195,6 +1225,9 @@ function parseDebugMessage(message) {
 		}
 		console.log("Row "+i+" : " + str); str="";
 	}
+	var rm = DataSetObject.getRowMap();
+	var cm = DataSetObject.getColMap();
+	
 	console.log("\r\n");
 	//console.log(JSON.stringify(DataSetObject.getColumnLabelWindow()));
 	//console.log(JSON.stringify(DataSetObject.getRowLabelWindow()));
