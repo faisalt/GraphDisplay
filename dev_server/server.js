@@ -1177,7 +1177,7 @@ function filterDataPoint(row, col) {
 	var actual_x = mywindow[row][col].row_id;
 	var actual_y = mywindow[row][col].col_id;
 	// TO DO - fix this, as it's causing inconsistencies
-	filterCoordinates.push([parseInt(actual_x), parseInt(actual_y)]);
+	filterCoordinates.push([parseInt(row), parseInt(col)]);
 	
 	PRESS_COMPARE_COUNTER++;
 	/* Start timer to detect whether we need to compare two rows or filter out a single point. Timer is set to 
@@ -1193,9 +1193,14 @@ function filterSingleDataPoint() {
 	var data = DataSetObject.AllDataVals();
 	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
+	
+	var mywindow = DataSetObject.getDataWindow();
+	var actual_x = mywindow[filterCoordinates[i][0]][filterCoordinates[i][1]].row_id;
+	var actual_y = mywindow[filterCoordinates[i][0]][filterCoordinates[i][1]].col_id;
+	
 	for(var i=0; i<filterCoordinates.length; i++) {
-		data[parseInt(filterCoordinates[i][0])][parseInt(filterCoordinates[i][1])].filtered = true;
-		data[parseInt(filterCoordinates[i][0])][parseInt(filterCoordinates[i][1])].annotated = false;
+		data[actual_x][actual_y].filtered = true;
+		data[actual_x][actual_y].annotated = false;
 	}
 	if(LOGGING_ENABLED == true) { logData(","+timestamp()+",FILTER_SINGLE_VALUE, FILTERING, EMERGE_SYSTEM"); }
 	DataSetObject.setAllDataVals(data);
@@ -1203,7 +1208,7 @@ function filterSingleDataPoint() {
 	filterCoordinates = Array();
 }
 // Compare two rows or columns, keep these ones and filter out the rest of the data window.
-function filterCompare(mode, grp1, grp2) {
+function filterCompare(mode, grp1, grp2, param1, param2) {
 	var data = DataSetObject.AllDataVals();
 	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
@@ -1212,9 +1217,17 @@ function filterCompare(mode, grp1, grp2) {
 		console.log("Comparing columns");
 		grp1 = parseInt(grp1);
 		grp2 = parseInt(grp2);
+		
+		var mywindow = DataSetObject.getDataWindow();
+		var actualcol_1 = mywindow[param1][grp1].col_id;
+		var actualcol_2 = mywindow[param2][grp2].col_id;
+		
+		// Get number of columns locked and subtract that from the total numcols + xindex
+		// or just replace data with datawindow
+		
 		for(var i=yindex; i<(_NUMROWS+yindex); i++) {
 			for(var j=xindex; j<(_NUMCOLS+xindex); j++) {
-				if(j != grp1 && j != grp2) {
+				if(j != actualcol_1 && j != actualcol_2) {
 					data[i][j].filtered = true;
 				}
 			}
@@ -1246,14 +1259,13 @@ function beginCompareTimer() {
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
 		// If two datapoints are selected, and are along the edges of the graph, then compare those two rows or columns.
 		// TO DO - need to make below more efficient, MASSIVE IF STATEMENTS!!! ARGH!
-		console.log(JSON.stringify(filterCoordinates));
 		if(filterCoordinates.length > 1) {
 			if((filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 1) ||
 			(filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 8) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 8) || 
 			(filterCoordinates[0][0] == 9 && filterCoordinates[1][0] == 9 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 9 && filterCoordinates[0][0] == 9 && filterCoordinates[0][1] == 1) ||
 			(filterCoordinates[0][0] == 9 && filterCoordinates[1][0] == 9 && filterCoordinates[1][1] == 8) || (filterCoordinates[1][0] == 9 && filterCoordinates[0][0] == 9 && filterCoordinates[0][1] == 8)){
 				console.log("compare columns, special");
-				filterCompare("COMPARE_COL", filterCoordinates[0][1], filterCoordinates[1][1]);
+				filterCompare("COMPARE_COL", filterCoordinates[0][1], filterCoordinates[1][1], filterCoordinates[0][0], filterCoordinates[1][0]);
 			}
 			else if((filterCoordinates[0][1] == 0 && filterCoordinates[1][1] == 0 && filterCoordinates[1][0] == 1) || (filterCoordinates[1][1] == 0 && filterCoordinates[0][1] == 0 && filterCoordinates[0][0] == 1) ||
 			(filterCoordinates[0][1] == 0 && filterCoordinates[1][1] == 0 && filterCoordinates[1][0] == 8) || (filterCoordinates[1][1] == 0 && filterCoordinates[0][1] == 0 && filterCoordinates[0][0] == 8) ||
@@ -1264,7 +1276,7 @@ function beginCompareTimer() {
 			}
 			else if((filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0) || (filterCoordinates[0][0] == 9 && filterCoordinates[1][0] == 9)) {
 				console.log("compare columns");
-				filterCompare("COMPARE_COL", filterCoordinates[0][1], filterCoordinates[1][1]);
+				filterCompare("COMPARE_COL", filterCoordinates[0][1], filterCoordinates[1][1], filterCoordinates[0][0], filterCoordinates[1][0]);
 			}
 			else if((filterCoordinates[0][1] == 0 && filterCoordinates[1][1] == 0) || (filterCoordinates[0][1] == 9 && filterCoordinates[1][1] == 9)) {
 				console.log("compare rows");
