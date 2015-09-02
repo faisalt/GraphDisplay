@@ -215,7 +215,7 @@ div.widget_box {
 	float:left;
 	position:relative;
 	display:inline-block;
-	left: 30%;
+	left: 5%;
 	top:100px;
 	padding-top:20px;
 	padding-bottom:20px;
@@ -243,6 +243,69 @@ input#reload_widget {
 	position: relative;
 	margin-left:60px;
 	width:75px;
+}
+
+/* Snapshotting */
+div.snapshot_box_left {
+	float:left;
+	position:relative;
+	display:inline-block;
+	left: 1%;
+	top:100px;
+	padding-top:15px;
+	padding-bottom:15px;
+	padding-left:50px;
+	padding-right:50px;
+	background:black;
+	/*border:2px solid white;*/
+	border-radius:20px;
+}
+
+div.snapshot_box_right {
+	float:right;
+	position:relative;
+	display:inline-block;
+	right: 1%;
+	top:100px;
+	padding-top:15px;
+	padding-bottom:15px;
+	padding-left:50px;
+	padding-right:50px;
+	background:black;
+	/*border:2px solid white;*/
+	border-radius:20px;
+}
+
+div.snapshots {
+	padding:20px;
+	border:1px solid lightgray;
+	border-radius:20px;
+	float:left;
+	margin-left:10px;
+}
+
+img.cancel_snapshot_1 {
+	width:65px;
+	position:absolute;
+	left:15%;
+}
+
+img.cancel_snapshot_2 {
+	width:65px;
+	position:absolute;
+	left:50%;
+}
+
+img.cancel_snapshot_4 {
+	width:65px;
+	position:absolute;
+	right:15%;
+}
+
+img.cancel_snapshot_3 {
+	width:65px;
+	position:absolute;
+	right:50%;
 }
 
 /*********** End widget stuff ******************/

@@ -28,8 +28,13 @@ var _WINDOWSIZE			= 10;
 var _COLLENGTH			= 0;
 var _ROWLENGTH			= 0;
 var _DATAREPO			= "http://localhost/GraphDisplay/data/";
+
+//var _CSVFILE			= "appropriateness.csv";
+//var _XMLCOLOURSFILE	= "appropriateness.metadata";
+
 var _CSVFILE			= "EU_Values3.csv";
 var _XMLCOLOURSFILE		= "EU_Values3.metadata";
+
 var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
@@ -42,7 +47,7 @@ var PRESS_COMPARE_COUNTER 			= 0;
 var COMPARE_TIMER_STARTED 			= false;
 var COMPARE_TIME_1 					= 0;
 var COMPARE_TIME_2 					= 0;
-var FILTER_COMPARISON_INTERVAL 		= 500;
+var FILTER_COMPARISON_INTERVAL 		= 800;
 var FILTER_COMPARISON_TIMER_TICK 	= 50;
 var rowcomparison_array = Array();
 var filterCoordinates = Array();
@@ -52,7 +57,7 @@ var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOUR
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
 var LockedData			= new LockedData();
 var DataHistory 		= new DataHistory();
-var DATAMAX_LIMITER		= 0.9;
+var DATAMAX_LIMITER		= 1;
 var DATAMIN_LIMITER		= 0.3;
 
 // Socket function variables - Listener variables
@@ -77,6 +82,10 @@ var SET_FILTERED				= "SET_FILTERED";
 var ACTION_UNDO					= "ACTION_UNDO";
 var ACTION_REDO					= "ACTION_REDO";
 var ACTION_RELOAD				= "ACTION_RELOAD";
+
+var CREATE_SNAPSHOT				= "CREATE_SNAPSHOT";
+var SHOW_SNAPSHOT				= "SHOW_SNAPSHOT";
+var REMOVE_SNAPSHOT				= "REMOVE_SNAPSHOT";
 
 // Socket function variables - Broadcast variables.
 var DATASET_WINDOW_UPDATE			= "DATASET_WINDOW_UPDATE"; // broadcast and globally update the dataset window values
@@ -132,8 +141,8 @@ io.sockets.on('connection', function (socket) {
 	
 	socket.on("UPDATE_GUI", function(client) {
 		// socket.emit = local, socket.broadcast.emit = global
-		socket.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.getColumnLabelWindow(), lockedColumns : LockedData.getActualColumnIndices()}));
-		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.getColumnLabelWindow(), lockedColumns : LockedData.getActualColumnIndices()}));
+		socket.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.getColumnLabelWindow(), lockedColumns : LockedData.getActualColumnIndices(), snapshots: DataHistory.getSnapshots()}));
+		socket.broadcast.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.getColumnLabelWindow(), lockedColumns : LockedData.getActualColumnIndices(), snapshots: DataHistory.getSnapshots()}));
 		socket.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.getColumnLabelWindow()}));
 		socket.broadcast.emit(DATASET_X_SCROLLBAR_UPDATE, JSON.stringify({xindex:DATA_INDEX.getXScrollIndex(), xlabels:DataSetObject.getColumnLabelWindow()}));
 		socket.emit(DATASET_Y_LABEL_UPDATE, JSON.stringify({rows:DataSetObject.getRowLabelWindow(), lockedRows : LockedData.getActualRowIndices()}));
@@ -148,7 +157,7 @@ io.sockets.on('connection', function (socket) {
 		_CLIENTCOUNTER++;
 		socket.emit("UNITY_PING", {client_id:socket.id});
 	});
-	socket.on("UNITY_LOCK", function(data) {
+	socket.on("UNITY_LOCK", function(data)  {
 		LOCKED_CLIENT = data;
 		socket.join(UNITYROOM);
 	});
@@ -161,7 +170,15 @@ io.sockets.on('connection', function (socket) {
 	socket.on(REQUEST_ALLCOLUMNS, function(message, callback) {
 		var cdata = DataSetObject.getColumnLabelWindow();
 		var send_xindex = DATA_INDEX.getXScrollIndex();
-		callback(JSON.stringify({data:cdata, xindex:send_xindex, lockedColumns : LockedData.getActualColumnIndices(), col_length:DataSetObject.TotalMaxColumns()}));
+		callback(JSON.stringify({data:cdata, xindex:send_xindex, lockedColumns : LockedData.getActualColumnIndices(), col_length:DataSetObject.TotalMaxColumns(), snapshots: DataHistory.getSnapshots()}));
+	});
+	
+	socket.on("REQUEST_SNAPSHOTS", function(message, callback) {
+		callback(JSON.stringify({snapshots: DataHistory.getSnapshots()}));
+	});
+	socket.on("UPDATE_SNAPSHOTS", function(message) {
+		socket.broadcast.emit("UPDATE_SNAPSHOTS", JSON.stringify({snapshots: DataHistory.getSnapshots()}));
+		socket.emit("UPDATE_SNAPSHOTS", JSON.stringify({snapshots: DataHistory.getSnapshots()}));
 	});
 	
 	socket.on(REQUEST_ROW_LENGTH, function(message, callback) {
@@ -226,9 +243,9 @@ io.sockets.on('connection', function (socket) {
 		var annotated_coords = JSON.parse(data);
 		var annotated_row = annotated_coords["annotated_coordinate"][0];
 		var annotated_col = annotated_coords["annotated_coordinate"][1];
+		console.log("Row: " + annotated_row + ", Col: "+annotated_col);
 		annotateDataPoint(annotated_row, annotated_col);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
-		//console.log("Row: " + annotated_row + ", Col: "+annotated_col);
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
 	socket.on(SET_FILTERED, function(data) {
@@ -239,7 +256,6 @@ io.sockets.on('connection', function (socket) {
 		var filtered_col = filtered_coords["filtered_coordinate"][1];
 		console.log(filtered_row + ", " + filtered_col);
 		filterDataPoint(filtered_row, filtered_col);
-		DataHistory.add();
 		//parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		socket.broadcast.emit("DATASET_WINDOW_UPDATE", sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
@@ -276,6 +292,26 @@ io.sockets.on('connection', function (socket) {
 		LockedData.clearLockedRow(data);
 		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
 		DataHistory.add(["ROW_UNLOCK", data]);
+	});
+	/* Snapshot commands. */
+	socket.on(CREATE_SNAPSHOT, function(data, callback) {
+		DataHistory.addSnapshot(parseInt(data));
+		//DataHistory.add();
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		callback("SUCCESS");
+	});
+	socket.on(SHOW_SNAPSHOT, function(data, callback) {
+		//DataHistory.add();
+		DataHistory.showSnapshot(parseInt(data));
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		callback("SUCCESS");
+	});
+	socket.on(REMOVE_SNAPSHOT, function(data, callback) {
+		//DataHistory.add();
+		console.log("Remove snapshot: " + parseInt(data));
+		DataHistory.removeSnapshot(parseInt(data));
+		parseDebugMessage(JSON.stringify({data : DataSetObject.getDataWindow()}));
+		callback("SUCCESS");
 	});
 	/* Undo and Redo commands. */
 	socket.on(ACTION_UNDO, function(data, callback) {
@@ -347,6 +383,16 @@ function DataHistory() {
 	var UNDO_MODE = false;
 	var REDO_MODE = false;
 	var DISABLE_REDO = false;
+	
+	var SNAPSHOT_1=[];
+	var SNAPSHOT_LOCKED_1=[];
+	var SNAPSHOT_2=[];
+	var SNAPSHOT_LOCKED_2=[];
+	var SNAPSHOT_3=[];
+	var SNAPSHOT_LOCKED_3=[];
+	var SNAPSHOT_4=[];
+	var SNAPSHOT_LOCKED_4=[];
+	
 	// Base values (start state)
 	dataHistoryArray.push([
 		JSON.parse(JSON.stringify(DataSetObject.AllDataVals().slice(0))), 
@@ -444,6 +490,102 @@ function DataHistory() {
 			undoCount = redoCount;
 		}
 	}
+	// Store a snapshot
+	this.addSnapshot=function(param) {
+		switch(param) {
+			case 1:
+				SNAPSHOT_1 = this.getMostRecent();
+				SNAPSHOT_LOCKED_1 = LockedData.getAllLockedVariables();
+				break;
+			case 2:
+				SNAPSHOT_2 = this.getMostRecent();
+				SNAPSHOT_LOCKED_2 = LockedData.getAllLockedVariables();
+				break;
+			case 3:
+				SNAPSHOT_3 = this.getMostRecent();
+				SNAPSHOT_LOCKED_3 = LockedData.getAllLockedVariables();
+				break;
+			case 4:
+				SNAPSHOT_4 = this.getMostRecent();
+				SNAPSHOT_LOCKED_4 = LockedData.getAllLockedVariables();
+				break;
+			default:
+				"";
+		}
+	}
+	this.showSnapshot=function(param) {
+		switch(param) {
+			case 1:
+				LockedData.setAllLockedVariables(SNAPSHOT_LOCKED_1);
+				DataSetObject.setAllDataVals(JSON.parse(JSON.stringify(SNAPSHOT_1[0].slice(0)))); 
+				DataSetObject.setAllRowValues(SNAPSHOT_1[1].slice(0));
+				DataSetObject.setAllColumnValues(SNAPSHOT_1[2].slice(0)); 
+				DATA_INDEX.setXScrollIndex(SNAPSHOT_1[3]);
+				DATA_INDEX.setYScrollIndex(SNAPSHOT_1[4]);
+				break;
+			case 2:
+				LockedData.setAllLockedVariables(SNAPSHOT_LOCKED_2);
+				DataSetObject.setAllDataVals(JSON.parse(JSON.stringify(SNAPSHOT_2[0].slice(0)))); 
+				DataSetObject.setAllRowValues(SNAPSHOT_2[1].slice(0));
+				DataSetObject.setAllColumnValues(SNAPSHOT_2[2].slice(0)); 
+				DATA_INDEX.setXScrollIndex(SNAPSHOT_2[3]);
+				DATA_INDEX.setYScrollIndex(SNAPSHOT_2[4]);
+				break;
+			case 3:
+				LockedData.setAllLockedVariables(SNAPSHOT_LOCKED_3);
+				DataSetObject.setAllDataVals(JSON.parse(JSON.stringify(SNAPSHOT_3[0].slice(0)))); 
+				DataSetObject.setAllRowValues(SNAPSHOT_3[1].slice(0));
+				DataSetObject.setAllColumnValues(SNAPSHOT_3[2].slice(0)); 
+				DATA_INDEX.setXScrollIndex(SNAPSHOT_3[3]);
+				DATA_INDEX.setYScrollIndex(SNAPSHOT_3[4]);
+				break;
+			case 4:
+				LockedData.setAllLockedVariables(SNAPSHOT_LOCKED_4);
+				DataSetObject.setAllDataVals(JSON.parse(JSON.stringify(SNAPSHOT_4[0].slice(0)))); 
+				DataSetObject.setAllRowValues(SNAPSHOT_4[1].slice(0));
+				DataSetObject.setAllColumnValues(SNAPSHOT_4[2].slice(0)); 
+				DATA_INDEX.setXScrollIndex(SNAPSHOT_4[3]);
+				DATA_INDEX.setYScrollIndex(SNAPSHOT_4[4]);
+				break;
+			default:
+				"";
+		}
+	}
+	this.removeSnapshot=function(param) {
+		// Remove specified snapshot and set the data to ...?
+		switch(param) {
+			case 1:
+				SNAPSHOT_1 = [];
+				SNAPSHOT_LOCKED_1 = [];
+				break;
+			case 2:
+				SNAPSHOT_2 = [];
+				SNAPSHOT_LOCKED_2 = [];
+				break;
+			case 3:
+				SNAPSHOT_3 = [];
+				SNAPSHOT_LOCKED_3 = [];
+				break;
+			case 4:
+				SNAPSHOT_4 = [];
+				SNAPSHOT_LOCKED_4 = [];
+				break;
+			default:
+				"";
+		}
+	}
+	this.getSnapshots=function() {
+		//For client GUI purposes
+		var snapshotarray = [];
+		snapshotarray.push([1, SNAPSHOT_1.length],[2, SNAPSHOT_2.length],[3, SNAPSHOT_3.length],[4, SNAPSHOT_4.length]);
+		return snapshotarray;
+	}
+	this.getMostRecent=function() {
+		// Return most recently added element to the history.
+		return JSON.parse(JSON.stringify(dataHistoryArray[parseInt(dataHistoryArray.length - 1)].slice(0)));
+	}
+	this.savePreSnapshotView=function() { }
+	this.getPreSnapshotView=function() { }
 	// Reset to the 'start state' of the graph.
 	this.resetAll = function() {
 		DataSetObject.resetData();
@@ -605,7 +747,36 @@ function LockedData() {
 	this.resetLockedData=function() {
 		lockedRows=[], lockedColumns=[], lockedRowIndices=[], lockedColIndices=[], 
 		actualColIndices=[], actualRowIndices=[], lastDataWindow=[], mappedColumnIndices=[],
-		mappedRowIndices=[];
+		mappedRowIndices=[]; globalLockedCols=[]; originalColIndices=[]; originalRowIndices=[];
+	}
+	this.getAllLockedVariables=function() {
+		var giantLockedArray=[];
+		giantLockedArray.push(lockedRows.slice(0));
+		giantLockedArray.push(lockedColumns.slice(0));
+		giantLockedArray.push(lockedRowIndices.slice(0));
+		giantLockedArray.push(lockedColIndices.slice(0));
+		giantLockedArray.push(actualColIndices.slice(0));
+		giantLockedArray.push(actualRowIndices.slice(0));
+		giantLockedArray.push(mappedColumnIndices.slice(0));
+		giantLockedArray.push(mappedRowIndices.slice(0));
+		giantLockedArray.push(globalLockedCols.slice(0));
+		giantLockedArray.push(originalColIndices.slice(0));
+		giantLockedArray.push(originalRowIndices.slice(0));
+		return giantLockedArray;
+	}
+	this.setAllLockedVariables=function(savedGiantLockedArray) {
+		console.log(JSON.stringify(savedGiantLockedArray));
+		lockedRows = savedGiantLockedArray[0].slice(0);
+		lockedColumns = savedGiantLockedArray[1].slice(0);
+		lockedRowIndices = savedGiantLockedArray[2].slice(0);
+		lockedColIndices = savedGiantLockedArray[3].slice(0);
+		actualColIndices = savedGiantLockedArray[4].slice(0);
+		actualRowIndices = savedGiantLockedArray[5].slice(0);
+		mappedColumnIndices = savedGiantLockedArray[6].slice(0);
+		mappedRowIndices = savedGiantLockedArray[7].slice(0);
+		globalLockedCols = savedGiantLockedArray[8].slice(0);
+		originalColIndices = savedGiantLockedArray[9].slice(0);
+		originalRowIndices = savedGiantLockedArray[10].slice(0);
 	}
 }
 
@@ -691,7 +862,9 @@ function DataSetObject(csvfile, xmlfile) {
 	for(var col=1;col<maxcols; col++) {	colmap.push(col-1); }
 	
 	var max = allData.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
+	console.log("Maximum val is: " + max);
 	var min = allData.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
+	console.log("Minimum val is: " + min);
 	
 	// Get the data values, specific to a given grid size, and based on x and y index (if user has been scrolling)
 	this.getDataWindow = function() {
@@ -973,12 +1146,23 @@ function annotateDataPoint(row, col) {
 	var mywindow = DataSetObject.getDataWindow();
 	var actual_x = mywindow[row][col].row_id;
 	var actual_y = mywindow[row][col].col_id;
-	
-	if(data[actual_x][actual_y].annotated == false) {
+
+	if(data[actual_x][actual_y].annotated == false && data[actual_x][actual_y].filtered == false) {
+		data[actual_x][actual_y].annotated = true;
 		DataHistory.add();
 		logData(","+timestamp()+",ANNOTATIE_BAR, ANNOTATION, EMERGE_SYSTEM");
 	}
-	data[actual_x][actual_y].annotated = true;
+	else if(data[actual_x][actual_y].annotated == true && data[actual_x][actual_y].filtered == false) {
+		data[actual_x][actual_y].annotated = false;
+		DataHistory.add();
+		logData(","+timestamp()+",REMOVE_ANNOTATED, ANNOTATION, EMERGE_SYSTEM");
+	}
+	else if(data[actual_x][actual_y].filtered == true && data[actual_x][actual_y].annotated == false) {
+		data[actual_x][actual_y].filtered = false;
+		DataHistory.add();
+		logData(","+timestamp()+",REMOVE_FILTERED, FILTERING, EMERGE_SYSTEM");
+	}
+	
 	DataSetObject.setAllDataVals(data);
 }
 /* End Data Annotation Functions */
@@ -992,8 +1176,9 @@ function filterDataPoint(row, col) {
 	var mywindow = DataSetObject.getDataWindow();
 	var actual_x = mywindow[row][col].row_id;
 	var actual_y = mywindow[row][col].col_id;
-	
+	// TO DO - fix this, as it's causing inconsistencies
 	filterCoordinates.push([parseInt(actual_x), parseInt(actual_y)]);
+	
 	PRESS_COMPARE_COUNTER++;
 	/* Start timer to detect whether we need to compare two rows or filter out a single point. Timer is set to 
 	 * detect presses within a specific timeframe. */
@@ -1004,14 +1189,17 @@ function filterDataPoint(row, col) {
 }
 // Filter a single data point.
 function filterSingleDataPoint() {
+	console.log("filtering single data point");
 	var data = DataSetObject.AllDataVals();
 	var xindex = DATA_INDEX.getXScrollIndex(); // apply to columns
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
 	for(var i=0; i<filterCoordinates.length; i++) {
 		data[parseInt(filterCoordinates[i][0])][parseInt(filterCoordinates[i][1])].filtered = true;
+		data[parseInt(filterCoordinates[i][0])][parseInt(filterCoordinates[i][1])].annotated = false;
 	}
 	if(LOGGING_ENABLED == true) { logData(","+timestamp()+",FILTER_SINGLE_VALUE, FILTERING, EMERGE_SYSTEM"); }
 	DataSetObject.setAllDataVals(data);
+	DataHistory.add();
 	filterCoordinates = Array();
 }
 // Compare two rows or columns, keep these ones and filter out the rest of the data window.
@@ -1021,6 +1209,7 @@ function filterCompare(mode, grp1, grp2) {
 	var yindex = DATA_INDEX.getYScrollIndex(); // apply to rows
 	if(mode == "COMPARE_COL") {
 		// Columns according to normal orientation.
+		console.log("Comparing columns");
 		grp1 = parseInt(grp1);
 		grp2 = parseInt(grp2);
 		for(var i=yindex; i<(_NUMROWS+yindex); i++) {
@@ -1033,6 +1222,7 @@ function filterCompare(mode, grp1, grp2) {
 		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_COLUMNS, FILTERING, EMERGE_SYSTEM"); }
 	} else if(mode == "COMPARE_ROW") {
 		// Rows according to normal orientation.
+		console.log("Comparing rows");
 		grp1 = parseInt(grp1);
 		grp2 = parseInt(grp2);
 		for(var i=yindex; i<(_NUMROWS+yindex); i++) {
@@ -1044,6 +1234,7 @@ function filterCompare(mode, grp1, grp2) {
 		}
 		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_ROWS, FILTERING, EMERGE_SYSTEM"); }
 	}
+	DataHistory.add();
 	DataSetObject.setAllDataVals(data);
 }
 /* Checks whether synchronous presses are detected within a timeframe (i.e. if two data points side-by-side are pressed within this timeframe, 
@@ -1055,6 +1246,7 @@ function beginCompareTimer() {
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
 		// If two datapoints are selected, and are along the edges of the graph, then compare those two rows or columns.
 		// TO DO - need to make below more efficient, MASSIVE IF STATEMENTS!!! ARGH!
+		console.log(JSON.stringify(filterCoordinates));
 		if(filterCoordinates.length > 1) {
 			if((filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 1) ||
 			(filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 8) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 8) || 

@@ -12,7 +12,10 @@
 	<body>
 		<div id="loweraxis"></div>
 		<div id="lowerpanel_widgets"></div>
+		<div class="snapshot_box_left"></div>
 		<div class="widget_box"></div>
+		<div class="snapshot_box_right"></div>
+		<div class="snapshot_action_box_left"></div>
 		<div id="lowernavigationfunctions"></div>
 	</body>
 	
@@ -35,7 +38,8 @@ $(document).ready(function() {
 			lowerpanel.widgets({
 				reload:true,
 				undo:true,
-				redo:true
+				redo:true,
+				snapshot:true
 			});
 			lowerpanel.addLoggingListeners({ });
 		});

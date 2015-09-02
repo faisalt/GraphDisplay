@@ -127,8 +127,218 @@ var EmergeInterface = Class.extend({
 				});
 			});
 		}
+		if(feature.snapshot == true) {
+			//Add snapshot buttons
+			if($('input#snapshot_1').length > 0) { $('input#snapshot_1').parent().parent().empty();	}
+			if($('input#snapshot_2').length > 0) { $('input#snapshot_2').parent().parent().empty();	}
+			if($('input#snapshot_3').length > 0) { $('input#snapshot_3').parent().parent().empty();	}
+			if($('input#snapshot_4').length > 0) { $('input#snapshot_4').parent().parent().empty();	}
+			
+			$('div.snapshot_box_left').append('<div class="snapshots"><input type="image" onclick="" id="snapshot_1" class="empty" src="images/camera.png"></input></div><div class="snapshots"><input type="image" onclick="" id="snapshot_2" class="empty" src="images/camera.png"></input></div><div style="clear:both"></div>');
+			
+			$('div.snapshot_box_right').append('<div class="snapshots"><input type="image" onclick="" id="snapshot_3" class="empty" src="images/camera.png"></input></div><div class="snapshots"><input type="image" onclick="" id="snapshot_4" class="empty" src="images/camera.png"></input></div><div style="clear:both"></div>');
+			
+			$('input#snapshot_1').on('click', function() {
+				if($(this).hasClass('empty')) {
+					var that = this;
+					snapshotAdded(that, 1);
+					comms.emit("CREATE_SNAPSHOT", "1", function(data) {
+						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
+						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+					});
+					$('img.cancel_snapshot_1').on('click', function() {
+						snapshotRemoved(that);	$(this).remove();
+						comms.emit("REMOVE_SNAPSHOT", "1", function(data) {
+							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
+							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						});
+					});
+				}
+				else if($(this).hasClass('full')) {
+					comms.emit("SHOW_SNAPSHOT", "1", function(data) {
+						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+					});
+				}
+				
+			});
+			$('input#snapshot_2').on('click', function() {
+				if($(this).hasClass('empty')) {
+					var that = this;
+					snapshotAdded(that, 2);
+					comms.emit("CREATE_SNAPSHOT", "2", function(data) {
+						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
+						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+					});
+					$('img.cancel_snapshot_2').on('click', function() {
+						snapshotRemoved(that);	$(this).remove();
+						comms.emit("REMOVE_SNAPSHOT", "2", function(data) {
+							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
+							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						});
+					});	
+				}
+				else if($(this).hasClass('full')) {
+					comms.emit("SHOW_SNAPSHOT", "2", function(data) {
+						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+					});
+				}
+			});
+			
+			$('input#snapshot_3').on('click', function() {
+				if($(this).hasClass('empty')) {
+					var that = this;
+					snapshotAdded(that, 3);
+					comms.emit("CREATE_SNAPSHOT", "3", function(data) {
+						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
+						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+					});
+					$('img.cancel_snapshot_3').on('click', function() {
+						snapshotRemoved(that);	$(this).remove();
+						comms.emit("REMOVE_SNAPSHOT", "3", function(data) {
+							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
+							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						});
+					});
+				}
+				else if($(this).hasClass('full')) {
+					comms.emit("SHOW_SNAPSHOT", "3", function(data) {
+						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+					});
+				}
+				
+			});
+			$('input#snapshot_4').on('click', function() {
+				if($(this).hasClass('empty')) {
+					var that = this;
+					snapshotAdded(that, 4);
+					comms.emit("CREATE_SNAPSHOT", "4", function(data) {
+						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
+						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+					});
+					$('img.cancel_snapshot_4').on('click', function() {
+						snapshotRemoved(that);	$(this).remove();
+						comms.emit("REMOVE_SNAPSHOT", "4", function(data) {
+							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
+							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						});
+					});	
+				}
+				else if($(this).hasClass('full')) {
+					comms.emit("SHOW_SNAPSHOT", "4", function(data) {
+						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+					});
+				}
+			});
+			comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+			
+			comms.on("UPDATE_SNAPSHOTS", function(data) {
+				var parsed = JSON.parse(data);
+				var _SNAPSHOTS = parsed.snapshots;	
+				if(_SNAPSHOTS[0][1] > 0) {
+					if($('input#snapshot_1').hasClass('empty')) {
+						var element = $('input#snapshot_1');
+						snapshotAdded(element, 1);
+						$('img.cancel_snapshot_1').on('click', function() {
+							snapshotRemoved(element);
+							$(this).remove();
+							comms.emit("REMOVE_SNAPSHOT", "1", function(data) {
+								if(data == "SUCCESS") {	
+									comms.emit("UPDATE_GUI", _CLIENT);	
+									comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) { });
+								}
+							});
+						});
+					}
+				} else if(_SNAPSHOTS[0][1] == 0) {
+					if($('input#snapshot_1').hasClass('full')) {
+						snapshotRemoved($('input#snapshot_1'));	$('img.cancel_snapshot_1').remove();
+					}
+				}
+				
+				
+				
+				if(_SNAPSHOTS[1][1] > 0) {
+					if($('input#snapshot_2').hasClass('empty')) {
+						var element = $('input#snapshot_2');
+						snapshotAdded(element, 2);
+						$('img.cancel_snapshot_2').on('click', function() {
+							snapshotRemoved(element);
+							$(this).remove();
+							comms.emit("REMOVE_SNAPSHOT", "2", function(data) {
+								if(data == "SUCCESS") {	
+									comms.emit("UPDATE_GUI", _CLIENT);	
+									comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) { });
+								}
+							});
+						});
+					}
+				} else if(_SNAPSHOTS[1][1] == 0) {
+					if($('input#snapshot_2').hasClass('full')) {
+						snapshotRemoved($('input#snapshot_2'));	$('img.cancel_snapshot_2').remove();
+					}
+				}
+				
+				
+				if(_SNAPSHOTS[2][1] > 0) {
+					if($('input#snapshot_3').hasClass('empty')) {
+						var element = $('input#snapshot_3');
+						snapshotAdded(element, 3);
+						$('img.cancel_snapshot_3').on('click', function() {
+							snapshotRemoved(element);
+							$(this).remove();
+							comms.emit("REMOVE_SNAPSHOT", "3", function(data) {
+								if(data == "SUCCESS") {	
+									comms.emit("UPDATE_GUI", _CLIENT);	
+									comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) { });
+								}
+							});
+						});
+					}
+				} else if(_SNAPSHOTS[2][1] == 0) {
+					if($('input#snapshot_3').hasClass('full')) {
+						snapshotRemoved($('input#snapshot_3')); 	$('img.cancel_snapshot_3').remove();
+					}
+				}
+				
+				
+				if(_SNAPSHOTS[3][1] > 0) {
+					if($('input#snapshot_4').hasClass('empty')) {
+						var element = $('input#snapshot_4');
+						snapshotAdded(element, 4);
+						$('img.cancel_snapshot_4').on('click', function() {
+							snapshotRemoved(element);
+							$(this).remove();
+							comms.emit("REMOVE_SNAPSHOT", "4", function(data) {
+								if(data == "SUCCESS") {	
+									comms.emit("UPDATE_GUI", _CLIENT);	
+									comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) { });
+								}
+							});
+						});
+					}
+				} else if(_SNAPSHOTS[3][1] == 0) {
+					if($('input#snapshot_4').hasClass('full')) {
+						snapshotRemoved($('input#snapshot_4'));	$('img.cancel_snapshot_4').remove();
+					}
+				}
+			});
+		}
 	}
 });
+
+function snapshotAdded(elem, snapnum) {
+	$(elem).removeClass('empty');
+	$(elem).addClass('full');
+	$(elem).css('background', 'lightgray');
+	$(elem).parent().css('background', 'lightgray');
+	$(elem).parent().parent().append('<img class="cancel_snapshot_'+snapnum+'" src="images/cancel_snapshot.png"></img>');
+}
+function snapshotRemoved(elem) {
+	$(elem).removeClass('full');
+	$(elem).addClass('empty');
+	$(elem).css('background', 'black');
+	$(elem).parent().css('background', 'black');
+}
 
 var X_AxisInterface = EmergeInterface.extend({
 	_XLABELS : [],
@@ -209,7 +419,6 @@ var X_AxisInterface = EmergeInterface.extend({
 		// Get the labels for the x axis, i.e. the lower panel and add them to the interface.
 		for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
 		
-
 		comms.on("DATASET_X_LABEL_UPDATE", function(data) {
 			var parsed = JSON.parse(data);
 			_XLABELS = parsed.columns;
@@ -242,6 +451,7 @@ var X_AxisInterface = EmergeInterface.extend({
 					});
 				});
 			}
+
 		});
 		$('div.axis_label_lower').each(function() { 
 			if( $(this).hasClass('locked') ) {
