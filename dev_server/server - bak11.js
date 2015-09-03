@@ -76,8 +76,8 @@ var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOUR
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
 var LockedData			= new LockedData();
 var DataHistory 		= new DataHistory();
-var DATAMAX_LIMITER		= 0.5;
-var DATAMIN_LIMITER		= 1;
+var DATAMAX_LIMITER		= 1;
+var DATAMIN_LIMITER		= 0.3;
 
 // Socket function variables - Listener variables
 var DEBUG_DATA 				= "DEBUG_DATA"; // listens for data during debug mode : typically simplified data format
@@ -931,20 +931,6 @@ function DataSetObject(csvfile, xmlfile) {
 				}
 			}
 			LockedData.setLastLockedDataWindow(datawindow);
-			
-			/*var tempwin = [];
-			for(var i=0; i<datawindow.length; i++) {
-				var t=[];
-				tempwin.push(t);
-				for(var j=0; j<datawindow[i].length; j++) {
-					t.push(datawindow[i][j].val);
-				}
-			}
-			max = tempwin.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
-			min = tempwin.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);
-			console.log("Maximum val is: " + max);
-			console.log("Minimum val is: " + min);	*/		
-			
 			return datawindow;
 		}
 		else if(lockedColNum > 0 && lockedRowNum == 0) { /* ************ If only columns are locked ***************** */
@@ -1022,15 +1008,11 @@ function DataSetObject(csvfile, xmlfile) {
 	// Set all column values, e.g. if columns are reorganized by user.
 	this.setAllColumnValues = function(data) { allCols = data; }
 	// Maximum value of the entire dataset.
-	this.DataMaxValue = function() {
-		var maxval = (max + ((max-min) * DATAMAX_LIMITER));
-		//console.log("maxval " + maxval);
+	this.DataMaxValue = function() { 		
 		return (max + ((max-min) * DATAMAX_LIMITER));
 	}
 	// Minimum value of the entire dataset.
 	this.DataMinValue = function() { 
-		var minval = (min - (min * DATAMIN_LIMITER));
-		//console.log("minval " + minval);
 		return (min - (min * DATAMIN_LIMITER));
 	}
 	// Maximum number of rows in the entire dataset.
@@ -1293,18 +1275,18 @@ function filterCompare(mode, grp1, grp2, param1, param2) {
 		var actualcol_2 = grp2;
 		
 		console.log("Comparing columns " + actualcol_1 + " and " + actualcol_2);
-		if( mywindow[param1][grp1].locked == false && mywindow[param2][grp2].locked == false) {
-			// Get number of columns locked and subtract that from the total numcols + xindex
-			// or just replace data with datawindow
-			for(var i=0; i<mywindow.length; i++) {
-				for(var j=0; j<mywindow[i].length; j++) {
-					if(j != actualcol_1 && j != actualcol_2 && mywindow[i][j].locked == false) {
-						mywindow[i][j].filtered = true;
-					}
+		
+		// Get number of columns locked and subtract that from the total numcols + xindex
+		// or just replace data with datawindow
+		for(var i=0; i<mywindow.length; i++) {
+			for(var j=0; j<mywindow[i].length; j++) {
+				if(mywindow[i][j].col_id != actualcol_1 && mywindow[i][j].col_id != actualcol_2 && mywindow[i][j].locked == false) {
+					mywindow[i][j].filtered = true;
 				}
 			}
-			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_COLUMNS, FILTERING, EMERGE_SYSTEM"); }
 		}
+
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_COLUMNS, FILTERING, EMERGE_SYSTEM"); }
 	} else if(mode == "COMPARE_ROW") {
 		// Rows according to normal orientation.
 		console.log("Comparing rows");

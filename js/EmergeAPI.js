@@ -145,18 +145,21 @@ var EmergeInterface = Class.extend({
 					comms.emit("CREATE_SNAPSHOT", "1", function(data) {
 						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
 						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CREATE_SNAPSHOT_1", Timestamp:timestamp()})); }
 					});
 					$('img.cancel_snapshot_1').on('click', function() {
 						snapshotRemoved(that);	$(this).remove();
 						comms.emit("REMOVE_SNAPSHOT", "1", function(data) {
 							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
-							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) { });
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_1", Timestamp:timestamp()})); }
 						});
 					});
 				}
 				else if($(this).hasClass('full')) {
 					comms.emit("SHOW_SNAPSHOT", "1", function(data) {
 						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SHOW_SNAPSHOT_1", Timestamp:timestamp()})); }
 					});
 				}
 				
@@ -168,18 +171,21 @@ var EmergeInterface = Class.extend({
 					comms.emit("CREATE_SNAPSHOT", "2", function(data) {
 						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
 						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CREATE_SNAPSHOT_2", Timestamp:timestamp()})); }
 					});
 					$('img.cancel_snapshot_2').on('click', function() {
 						snapshotRemoved(that);	$(this).remove();
 						comms.emit("REMOVE_SNAPSHOT", "2", function(data) {
 							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
 							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_2", Timestamp:timestamp()})); }
 						});
 					});	
 				}
 				else if($(this).hasClass('full')) {
 					comms.emit("SHOW_SNAPSHOT", "2", function(data) {
 						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SHOW_SNAPSHOT_2", Timestamp:timestamp()})); }
 					});
 				}
 			});
@@ -191,18 +197,21 @@ var EmergeInterface = Class.extend({
 					comms.emit("CREATE_SNAPSHOT", "3", function(data) {
 						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
 						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CREATE_SNAPSHOT_3", Timestamp:timestamp()})); }
 					});
 					$('img.cancel_snapshot_3').on('click', function() {
 						snapshotRemoved(that);	$(this).remove();
 						comms.emit("REMOVE_SNAPSHOT", "3", function(data) {
 							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
 							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_3", Timestamp:timestamp()})); }
 						});
 					});
 				}
 				else if($(this).hasClass('full')) {
 					comms.emit("SHOW_SNAPSHOT", "3", function(data) {
 						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SHOW_SNAPSHOT_3", Timestamp:timestamp()})); }
 					});
 				}
 				
@@ -214,18 +223,21 @@ var EmergeInterface = Class.extend({
 					comms.emit("CREATE_SNAPSHOT", "4", function(data) {
 						if(data == "SUCCESS") { comms.emit("UPDATE_GUI", _CLIENT);	}
 						comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CREATE_SNAPSHOT_4", Timestamp:timestamp()})); }
 					});
 					$('img.cancel_snapshot_4').on('click', function() {
 						snapshotRemoved(that);	$(this).remove();
 						comms.emit("REMOVE_SNAPSHOT", "4", function(data) {
 							if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT);	}
 							comms.emit("UPDATE_SNAPSHOTS", _CLIENT, function(data) {		});
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_4", Timestamp:timestamp()})); }
 						});
 					});	
 				}
 				else if($(this).hasClass('full')) {
 					comms.emit("SHOW_SNAPSHOT", "4", function(data) {
 						if(data == "SUCCESS") {	comms.emit("UPDATE_GUI", _CLIENT); }
+						if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"SHOW_SNAPSHOT_4", Timestamp:timestamp()})); }
 					});
 				}
 			});
@@ -241,6 +253,7 @@ var EmergeInterface = Class.extend({
 						$('img.cancel_snapshot_1').on('click', function() {
 							snapshotRemoved(element);
 							$(this).remove();
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_1", Timestamp:timestamp()})); }
 							comms.emit("REMOVE_SNAPSHOT", "1", function(data) {
 								if(data == "SUCCESS") {	
 									comms.emit("UPDATE_GUI", _CLIENT);	
@@ -264,6 +277,7 @@ var EmergeInterface = Class.extend({
 						$('img.cancel_snapshot_2').on('click', function() {
 							snapshotRemoved(element);
 							$(this).remove();
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_2", Timestamp:timestamp()})); }
 							comms.emit("REMOVE_SNAPSHOT", "2", function(data) {
 								if(data == "SUCCESS") {	
 									comms.emit("UPDATE_GUI", _CLIENT);	
@@ -286,6 +300,7 @@ var EmergeInterface = Class.extend({
 						$('img.cancel_snapshot_3').on('click', function() {
 							snapshotRemoved(element);
 							$(this).remove();
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_3", Timestamp:timestamp()})); }
 							comms.emit("REMOVE_SNAPSHOT", "3", function(data) {
 								if(data == "SUCCESS") {	
 									comms.emit("UPDATE_GUI", _CLIENT);	
@@ -308,6 +323,7 @@ var EmergeInterface = Class.extend({
 						$('img.cancel_snapshot_4').on('click', function() {
 							snapshotRemoved(element);
 							$(this).remove();
+							if(LOGGING_ENABLED) { comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"CANCEL_SNAPSHOT_4", Timestamp:timestamp()})); }
 							comms.emit("REMOVE_SNAPSHOT", "4", function(data) {
 								if(data == "SUCCESS") {	
 									comms.emit("UPDATE_GUI", _CLIENT);	
@@ -345,6 +361,7 @@ var X_AxisInterface = EmergeInterface.extend({
 	_COLLENGTH : 0,
 	_XINDEX : 0,
 	_LOCKED_COLS : [],
+	_LOCKED_ROWS : [],
 	ENABLESWAP:false,
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
@@ -355,6 +372,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			_COLLENGTH = callback_data.col_length - LENGTH_HACK;
 			_XINDEX = callback_data.xindex;
 			_LOCKED_COLS=callback_data.lockedColumns;
+			_LOCKED_ROWS=callback_data.lockedRows;
 			ENABLESWAP=false;
 			if(_XLABELS != "") { callback(); }
 		});
@@ -366,7 +384,7 @@ var X_AxisInterface = EmergeInterface.extend({
 				if(!$(e.target).is('div#loweraxis') && !$(e.target).is('div.control') && !$(e.target).is('div.text') && !$(e.target).is('div.dropzone') && !$(e.target).is('div.widget_box') 
 				&& !$(e.target).is('div.widgets') && !$(e.target).is('img#leftarrow') && !$(e.target).is('img#uparrow') && !$(e.target).is('img#downarrow') && !$(e.target).is('img#rightarrow') 
 				&& !$(e.target).is('div#hscroll') && !$(e.target).is('div#vscroll') && !$(e.target).is('input#undo_widget') && !$(e.target).is('input#redo_widget') && !$(e.target).is('input#reload_widget')
-				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext') && !$(e.target).is('img.padlock')) {
+				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext') && !$(e.target).is('img.padlock') && !$(e.target).is('div.snapshot_box_left') && !$(e.target).is('div.snapshot_box_right') && !$(e.target).is('div.snapshots') && !$(e.target).is('input#snapshot_1') && !$(e.target).is('img.cancel_snapshot_1') && !$(e.target).is('input#snapshot_2') && !$(e.target).is('img.cancel_snapshot_2') && !$(e.target).is('input#snapshot_3') && !$(e.target).is('img.cancel_snapshot_3') && !$(e.target).is('input#snapshot_4') && !$(e.target).is('img.cancel_snapshot_4')) {
 					//Click or touch is outside any function buttons
 					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"NON_FUNCTIONAL", Timestamp:timestamp()}));
 				}
@@ -424,6 +442,7 @@ var X_AxisInterface = EmergeInterface.extend({
 			_XLABELS = parsed.columns;
 			for (var col = 0; col < X_LIMIT; ++col) { setXAxisLabel(col,  _XLABELS[col]); }
 			
+			_LOCKED_ROWS = parsed.lockedRows;
 			_LOCKED_COLS = parsed.lockedColumns;
 			$('div.axis_label_lower').each(function() { 
 				if( $(this).hasClass('locked') ) {
@@ -504,21 +523,25 @@ var X_AxisInterface = EmergeInterface.extend({
 				}
 			},
 			$('img.padlock').on('click', function(e) {
-				var curr_index = $(e.currentTarget).parent().data('idx');
-				if(!$(e.currentTarget).hasClass('label_locked')) {
-					comms.emit("LOCK_COLUMN", curr_index);
-					$(e.currentTarget).attr('src', 'images/padlock_closed.png');
-					$(e.currentTarget).removeClass('unlocked');
-					$(e.currentTarget).addClass('label_locked');
-					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
+				if(_LOCKED_ROWS.length == 0) {
+					var curr_index = $(e.currentTarget).parent().data('idx');
+					if(!$(e.currentTarget).hasClass('label_locked')) {
+						comms.emit("LOCK_COLUMN", curr_index);
+						$(e.currentTarget).attr('src', 'images/padlock_closed.png');
+						$(e.currentTarget).removeClass('unlocked');
+						$(e.currentTarget).addClass('label_locked');
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
+					} else {
+						comms.emit("UNLOCK_COLUMN", curr_index);
+						$(e.currentTarget).attr('src', 'images/padlock_open.png');
+						$(e.currentTarget).removeClass('label_locked');
+						$(e.currentTarget).addClass('unlocked');
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
+					}
+					comms.emit("UPDATE_GUI", _CLIENT);
 				} else {
-					comms.emit("UNLOCK_COLUMN", curr_index);
-					$(e.currentTarget).attr('src', 'images/padlock_open.png');
-					$(e.currentTarget).removeClass('label_locked');
-					$(e.currentTarget).addClass('unlocked');
-					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK_FAIL", Timestamp:timestamp()}));
 				}
-				comms.emit("UPDATE_GUI", _CLIENT);
 			});
 			interact('.draggable_x').draggable({
 				// enable inertial throwing
@@ -775,6 +798,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 	_ROWLENGTH : 0,
 	_YINDEX : 0,
 	_LOCKED_ROWS : [],
+	_LOCKED_COLS : [],
 	ENABLESWAP:false,
 	init: function(callback) {
 		// Ask server for GUI details, like column labels, etc.
@@ -784,6 +808,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			_ROWLENGTH = callback_data.row_length;
 			_YINDEX = callback_data.yindex;
 			_LOCKED_ROWS=callback_data.lockedRows;
+			_LOCKED_COLS=callback_data.lockedColumns;
 			ENABLESWAP=false;
 			if(_YLABELS != "") { callback(); }
 		});
@@ -795,7 +820,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 				if(!$(e.target).is('div#loweraxis') && !$(e.target).is('div.control') && !$(e.target).is('div.text') && !$(e.target).is('div.dropzone') && !$(e.target).is('div.widget_box') 
 				&& !$(e.target).is('div.widgets') && !$(e.target).is('img#leftarrow') && !$(e.target).is('img#uparrow') && !$(e.target).is('img#downarrow') && !$(e.target).is('img#rightarrow') 
 				&& !$(e.target).is('div#hscroll') && !$(e.target).is('div#vscroll') && !$(e.target).is('input#undo_widget') && !$(e.target).is('input#redo_widget') && !$(e.target).is('input#reload_widget')
-				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext') && !$(e.target).is('img.padlock')) {
+				&& !$(e.target).is('div.nub_x') && !$(e.target).is('div.ghost_x') && !$(e.target).is('div.nub_y') && !$(e.target).is('div.ghost_y') && !$(e.target).is('span.spantext') && !$(e.target).is('img.padlock') && !$(e.target).is('div.snapshot_box_left') && !$(e.target).is('div.snapshot_box_right') && !$(e.target).is('div.snapshots') && !$(e.target).is('input#snapshot_1') && !$(e.target).is('img.cancel_snapshot_1') && !$(e.target).is('input#snapshot_2') && !$(e.target).is('img.cancel_snapshot_2') && !$(e.target).is('input#snapshot_3') && !$(e.target).is('img.cancel_snapshot_3') && !$(e.target).is('input#snapshot_4') && !$(e.target).is('img.cancel_snapshot_4')) {
 					//Click or touch is outside any function buttons
 					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"NON_FUNCTIONAL", Timestamp:timestamp()}));
 				}
@@ -853,7 +878,7 @@ var Y_AxisInterface = EmergeInterface.extend({
 			var parsed = JSON.parse(data);
 			_YLABELS = parsed.rows;
 			for (var row = 0; row < Y_LIMIT; ++row) { setYAxisLabel(row,  _YLABELS[row]); }
-			
+			_LOCKED_COLS=parsed.lockedColumns;
 			_LOCKED_ROWS = parsed.lockedRows;
 			$('div.axis_label_left').each(function() { 
 				if( $(this).hasClass('locked') ) {
@@ -928,21 +953,25 @@ var Y_AxisInterface = EmergeInterface.extend({
 				}
 			},
 			$('img.padlock').on('click', function(e) {
-				var curr_index = $(e.currentTarget).parent().data('idx');
-				if(!$(e.currentTarget).hasClass('label_locked')) {
-					comms.emit("LOCK_ROW", curr_index);
-					$(e.currentTarget).attr('src', 'images/padlock_closed.png');
-					$(e.currentTarget).removeClass('unlocked');
-					$(e.currentTarget).addClass('label_locked');
-					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
+				if(_LOCKED_COLS.length == 0) {
+					var curr_index = $(e.currentTarget).parent().data('idx');
+					if(!$(e.currentTarget).hasClass('label_locked')) {
+						comms.emit("LOCK_ROW", curr_index);
+						$(e.currentTarget).attr('src', 'images/padlock_closed.png');
+						$(e.currentTarget).removeClass('unlocked');
+						$(e.currentTarget).addClass('label_locked');
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
+					} else {
+						comms.emit("UNLOCK_ROW", curr_index);
+						$(e.currentTarget).attr('src', 'images/padlock_open.png');
+						$(e.currentTarget).removeClass('label_locked');
+						$(e.currentTarget).addClass('unlocked');
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
+					}
+					comms.emit("UPDATE_GUI", _CLIENT);
 				} else {
-					comms.emit("UNLOCK_ROW", curr_index);
-					$(e.currentTarget).attr('src', 'images/padlock_open.png');
-					$(e.currentTarget).removeClass('label_locked');
-					$(e.currentTarget).addClass('unlocked');
-					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
+					comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK_FAIL", Timestamp:timestamp()}));
 				}
-				comms.emit("UPDATE_GUI", _CLIENT);
 			});
 			if(LOGGING_ENABLED) {
 				interact('div.text').on('tap',function() {
