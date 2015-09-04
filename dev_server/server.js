@@ -1312,18 +1312,23 @@ function filterCompare(mode, grp1, grp2, param1, param2) {
 		grp2 = parseInt(grp2);
 		
 		var mywindow = DataSetObject.getDataWindow();
-		var actualrow_1 = mywindow[grp1][param1].row_id;
-		var actualrow_2 = mywindow[grp2][param2].row_id;
+		//var actualrow_1 = mywindow[grp1][param1].row_id;
+		//var actualrow_2 = mywindow[grp2][param2].row_id;
 		
+		var actualrow_1 = grp1;
+		var actualrow_2 = grp2;
 		
-		for(var i=0; i<mywindow.length; i++) {
-			for(var j=0; j<mywindow[i].length; j++) {
-				if(mywindow[i][j].row_id != actualrow_1 && mywindow[i][j].row_id != actualrow_2 && mywindow[i][j].locked == false) {
-					mywindow[i][j].filtered = true;
+		console.log("Comparing rows " + actualrow_1 + " and " + actualrow_2);
+		if( mywindow[grp1][param1].locked == false && mywindow[grp2][param2].locked == false) {
+			for(var i=0; i<mywindow.length; i++) {
+				for(var j=0; j<mywindow[i].length; j++) {
+					if(i != actualrow_1 && i != actualrow_2 && mywindow[i][j].locked == false) {
+						mywindow[i][j].filtered = true;
+					}
 				}
 			}
+			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_ROWS, FILTERING, EMERGE_SYSTEM"); }
 		}
-		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_ROWS, FILTERING, EMERGE_SYSTEM"); }
 	}
 	DataHistory.add();
 	DataSetObject.setAllDataVals(data);
