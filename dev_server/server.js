@@ -17,17 +17,14 @@
 */
 
 
-var LOGGING_ENABLED		= false;
+var LOGGING_ENABLED	= true;
 
-var _PNUM=99;
+var _PNUM = 99;
 
 //var _CONDITION="DEMO";
 //var _CONDITION="TRAINING";
 var _CONDITION="EXPLORATION";
 //var _CONDITION="PRESENTATION";
-
-var _LOG_FILENAME = "Participant_"+_PNUM+"_"+_CONDITION;
-
 
 
 //var _CSVFILE			= "Rainfall-v2.csv";
@@ -39,6 +36,10 @@ var _LOG_FILENAME = "Participant_"+_PNUM+"_"+_CONDITION;
 var _CSVFILE			= "EU_Values3.csv";
 var _XMLCOLOURSFILE		= "EU_Values3.metadata";
 
+
+
+
+var _LOG_FILENAME = "Participant_"+_PNUM+"_"+_CONDITION;
 
 
 
@@ -76,7 +77,7 @@ var DataSetObject 		= new DataSetObject(_DATAREPO+_CSVFILE, _DATAREPO+_XMLCOLOUR
 var DATA_INDEX 			= new DataIndex(); // Initialize data index tracking object
 var LockedData			= new LockedData();
 var DataHistory 		= new DataHistory();
-var DATAMAX_LIMITER		= 0.5;
+var DATAMAX_LIMITER		= 0.6;
 var DATAMIN_LIMITER		= 1;
 
 // Socket function variables - Listener variables
@@ -157,7 +158,10 @@ io.sockets.on('connection', function (socket) {
 	socket.on(DATASET_WINDOW_UPDATE, function() {
 		socket.emit(DATASET_WINDOW_UPDATE, sendBigJSONdata({dataset:true, rowcolors:true, minz:true, maxz:true, animationTime:true}));
 	});
-	
+	socket.on("PRESENTATION", function(data) {
+		console.log("Setting action log to Presentation mode");
+		_CONDITION = "PRESENTATION";
+	});
 	socket.on("UPDATE_GUI", function(client) {
 		// socket.emit = local, socket.broadcast.emit = global
 		socket.emit(DATASET_X_LABEL_UPDATE, JSON.stringify({columns:DataSetObject.getColumnLabelWindow(), lockedColumns : LockedData.getActualColumnIndices(), lockedRows : LockedData.getActualRowIndices()}));
@@ -1115,9 +1119,9 @@ function DataSetObject(csvfile, xmlfile) {
 
 /* Data Navigation Functions: Handle data scrolling on the x and y axis */
 /** Increment/decrement X axis index. */
-function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); }
+function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); if(LOGGING_ENABLED == true) { logData(","+timestamp()+",X_AXIS_NAVIGATING_TO: "+DATA_INDEX.getXScrollIndex() +", NAVIGATION_SCROLL, EMERGE_SYSTEM"); } }
 /** Increment/decrement Y axis index. */
-function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); }
+function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); if(LOGGING_ENABLED == true) { logData(","+timestamp()+",Y_AXIS_NAVIGATING_TO: "+DATA_INDEX.getYScrollIndex() +", NAVIGATION_SCROLL, EMERGE_SYSTEM"); } }
 /* End Data Navigation Functions */
 
 /* Data Organization functions */
@@ -1437,7 +1441,7 @@ function readMetaData_XML(file) {
 /* General Functions */
 /** Function to append to file for logging purposes - i.e. for the collaboration user study. */
 function logData(data) {
-	data = data + "\r\n";
+	data = ","+_CONDITION+data + "\r\n";
 	//TO DO: check if file exists, if not, create file, then append
 	fs.appendFile('logs/'+_LOG_FILENAME+".txt", data, function (err) {
 		if(err) { return console.log("Could not write to file \r\n" + err); }
