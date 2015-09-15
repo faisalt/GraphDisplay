@@ -530,13 +530,13 @@ var X_AxisInterface = EmergeInterface.extend({
 						$(e.currentTarget).attr('src', 'images/padlock_closed.png');
 						$(e.currentTarget).removeClass('unlocked');
 						$(e.currentTarget).addClass('label_locked');
-						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCKING", Timestamp:timestamp()}));
 					} else {
 						comms.emit("UNLOCK_COLUMN", curr_index);
 						$(e.currentTarget).attr('src', 'images/padlock_open.png');
 						$(e.currentTarget).removeClass('label_locked');
 						$(e.currentTarget).addClass('unlocked');
-						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCKING", Timestamp:timestamp()}));
 					}
 					comms.emit("UPDATE_GUI", _CLIENT);
 				} else {
@@ -960,13 +960,13 @@ var Y_AxisInterface = EmergeInterface.extend({
 						$(e.currentTarget).attr('src', 'images/padlock_closed.png');
 						$(e.currentTarget).removeClass('unlocked');
 						$(e.currentTarget).addClass('label_locked');
-						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCK", Timestamp:timestamp()}));
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"LOCKING", Timestamp:timestamp()}));
 					} else {
 						comms.emit("UNLOCK_ROW", curr_index);
 						$(e.currentTarget).attr('src', 'images/padlock_open.png');
 						$(e.currentTarget).removeClass('label_locked');
 						$(e.currentTarget).addClass('unlocked');
-						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCK", Timestamp:timestamp()}));
+						comms.emit("ACTION_LOG", JSON.stringify({Device_ID:_CLIENT, Action_Name:"UI_PRESS", Action_Type:"UNLOCKING", Timestamp:timestamp()}));
 					}
 					comms.emit("UPDATE_GUI", _CLIENT);
 				} else {

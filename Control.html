@@ -10,7 +10,8 @@
 		<script type="text/javascript" src="js/EmergeAPI.js"></script>	
 	</head>
 	<body>
-		<div class="controlpanel"><button id="presentation_mode">Presentation</button></div>
+		<div class="controlpanel"><button class="logbutton" id="presentation_mode">Presentation</button></div>
+		<div class="controlpanel"><button class="logbutton" id="exploration_mode">Exploration</button></div>
 	</body>
 	
 </html>
@@ -22,6 +23,9 @@ $(document).ready(function() {
 	initComms("CONTROL", WS_PORT, function(){ 
 		$('button#presentation_mode').on('click', function() {
 			comms.emit("PRESENTATION", "switch");
+		});		
+		$('button#exploration_mode').on('click', function() {
+			comms.emit("EXPLORATION", "switch");
 		});		
 	});
 });

@@ -19,25 +19,17 @@
 
 var LOGGING_ENABLED	= true;
 
-var _PNUM = 99;
+var _PNUM = 17;
 
-//var _CONDITION="DEMO";
-//var _CONDITION="TRAINING";
-var _CONDITION="EXPLORATION";
+
+//var _CONDITION="DEMO"; var _CSVFILE = "Rainfall-v2.csv"; var _XMLCOLOURSFILE = "Rainfall-v2.metadata";
+
+//var _CONDITION="TRAINING"; var _CSVFILE = "appropriateness.csv"; var _XMLCOLOURSFILE = "appropriateness.metadata";
+
+var _CONDITION="EXPLORATION"; var _CSVFILE = "EU_Values3.csv";  var _XMLCOLOURSFILE = "EU_Values3.metadata";
+
+
 //var _CONDITION="PRESENTATION";
-
-
-//var _CSVFILE			= "Rainfall-v2.csv";
-//var _XMLCOLOURSFILE		= "Rainfall-v2.metadata";
-
-//var _CSVFILE			= "appropriateness.csv";
-//var _XMLCOLOURSFILE	= "appropriateness.metadata";
-
-var _CSVFILE			= "EU_Values3.csv";
-var _XMLCOLOURSFILE		= "EU_Values3.metadata";
-
-
-
 
 var _LOG_FILENAME = "Participant_"+_PNUM+"_"+_CONDITION;
 
@@ -60,7 +52,7 @@ var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
-var _ANIMATION_TIME		= 50;
+var _ANIMATION_TIME		= 200;
 
 // Variables for filtering
 var PRESS_COMPARE_COUNTER 			= 0;
@@ -161,6 +153,10 @@ io.sockets.on('connection', function (socket) {
 	socket.on("PRESENTATION", function(data) {
 		console.log("Setting action log to Presentation mode");
 		_CONDITION = "PRESENTATION";
+	});
+	socket.on("EXPLORATION", function(data) {
+		console.log("Setting action log to Exploration mode");
+		_CONDITION = "EXPLORATION";
 	});
 	socket.on("UPDATE_GUI", function(client) {
 		// socket.emit = local, socket.broadcast.emit = global
@@ -518,19 +514,19 @@ function DataHistory() {
 		switch(param) {
 			case 1:
 				SNAPSHOT_1 = this.getMostRecent();
-				SNAPSHOT_LOCKED_1 = LockedData.getAllLockedVariables();
+				SNAPSHOT_LOCKED_1 = JSON.parse(JSON.stringify(LockedData.getAllLockedVariables().slice(0)));
 				break;
 			case 2:
 				SNAPSHOT_2 = this.getMostRecent();
-				SNAPSHOT_LOCKED_2 = LockedData.getAllLockedVariables();
+				SNAPSHOT_LOCKED_2 = JSON.parse(JSON.stringify(LockedData.getAllLockedVariables().slice(0)));
 				break;
 			case 3:
 				SNAPSHOT_3 = this.getMostRecent();
-				SNAPSHOT_LOCKED_3 = LockedData.getAllLockedVariables();
+				SNAPSHOT_LOCKED_3 = JSON.parse(JSON.stringify(LockedData.getAllLockedVariables().slice(0)));
 				break;
 			case 4:
 				SNAPSHOT_4 = this.getMostRecent();
-				SNAPSHOT_LOCKED_4 = LockedData.getAllLockedVariables();
+				SNAPSHOT_LOCKED_4 = JSON.parse(JSON.stringify(LockedData.getAllLockedVariables().slice(0)));
 				break;
 			default:
 				"";
@@ -605,7 +601,8 @@ function DataHistory() {
 	}
 	this.getMostRecent=function() {
 		// Return most recently added element to the history.
-		return JSON.parse(JSON.stringify(dataHistoryArray[parseInt(dataHistoryArray.length - 1)].slice(0)));
+		//return JSON.parse(JSON.stringify(dataHistoryArray[parseInt(dataHistoryArray.length - 1)].slice(0)));
+		return JSON.parse(JSON.stringify(dataHistoryArray[parseInt(undoCount)].slice(0)));
 	}
 	this.savePreSnapshotView=function() { }
 	this.getPreSnapshotView=function() { }
@@ -648,6 +645,8 @@ function LockedData() {
 		var mydata = this.getLastLockedDataWindow();
 		var globalRowIndex = mydata[index][0].row_id;
 		var original = mydata[index][0].original_row_id;
+		var rowtext =  mydata[index][0].row_text;
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",LOCKING ROW "+ rowtext +", LOCKING, ACTION_DETAILS"); }
 		mappedRowIndices.push(parseInt(original));
 		for(var i=0; i<data[globalRowIndex].length; i++) {
 			data[globalRowIndex][i].locked = true;
@@ -657,6 +656,7 @@ function LockedData() {
 		originalRowIndices.push(original);
 		DataSetObject.remapData(); // IMPORTANT !
 		printFriendly(temparray);
+		
 		lockedRows.push([index, temparray]);
 	}
 	this.addLockedColumns=function(index) {
@@ -668,6 +668,8 @@ function LockedData() {
 		var mydata = this.getLastLockedDataWindow();
 		var globalColIndex = mydata[0][index].col_id;
 		var original = mydata[0][index].original_col_id;
+		var coltext =  mydata[0][index].col_text;
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",LOCKING COLUMN "+ coltext +", LOCKING, ACTION_DETAILS"); }
 		mappedColumnIndices.push(parseInt(original));
 		// Store the locked dataset.
 		for (var row = 0; row < DataSetObject.TotalMaxRows(); ++row) {
@@ -682,6 +684,7 @@ function LockedData() {
 		originalColIndices.push(original);
 		DataSetObject.remapData(); // IMPORTANT !
 		printFriendly(temparray);
+		
 		lockedColumns.push([index, temparray]);
 	}
 	this.getLockedRows=function() { 
@@ -730,6 +733,8 @@ function LockedData() {
 		for (var row = 0; row < DataSetObject.TotalMaxRows(); ++row) {
 			data[row][globalColIndex].locked = false;
 		}
+		var coltext = data[0][globalColIndex].col_text;
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",UNLOCKING COLUMN "+ coltext +", UNLOCKING, ACTION_DETAILS"); }
 		DataSetObject.remapData(); // IMPORTANT !
 		DataSetObject.remapOriginalColumnIndices();
 	}
@@ -774,6 +779,8 @@ function LockedData() {
 		for (var col = 0; col < DataSetObject.TotalMaxColumns()-1; ++col) {
 			data[globalRowIndex][col].locked = false;
 		}
+		var rowtext = data[globalRowIndex][0].row_text;
+		if(LOGGING_ENABLED == true) { logData(","+timestamp()+",UNLOCKING ROW "+ rowtext +", UNLOCKING, ACTION_DETAILS"); }
 		DataSetObject.remapData(); // IMPORTANT !
 		DataSetObject.remapOriginalRowIndices();
 	}
@@ -1011,6 +1018,16 @@ function DataSetObject(csvfile, xmlfile) {
 		}
 		return labels;
 	}
+	this.getRowLabelWindowCSV = function() {
+		var dataWindow = this.getDataWindow();
+		var labels="";
+		for(var i=0; i<dataWindow.length; i++) {
+			labels += dataWindow[i][0].row_text;
+			if(i < dataWindow.length-1)
+				labels += ";";
+		}
+		return labels;
+	}
 	// Set all row values, e.g. if rows have been reorganized by user.
 	this.setAllRowValues = function(data) { allRows = data;	}
 	// Get all the column values of the dataset.
@@ -1020,6 +1037,16 @@ function DataSetObject(csvfile, xmlfile) {
 		var labels = [];
 		for(var i=0; i<dataWindow[0].length; i++) {
 			labels.push(dataWindow[0][i].col_text);
+		}
+		return labels;
+	}
+	this.getColumnLabelWindowCSV = function() {
+		var dataWindow = this.getDataWindow();
+		var labels = "";
+		for(var i=0; i<dataWindow[0].length; i++) {
+			labels += dataWindow[0][i].col_text;
+			if(i < dataWindow[0].length-1)
+				labels += ";";
 		}
 		return labels;
 	}
@@ -1119,9 +1146,9 @@ function DataSetObject(csvfile, xmlfile) {
 
 /* Data Navigation Functions: Handle data scrolling on the x and y axis */
 /** Increment/decrement X axis index. */
-function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); if(LOGGING_ENABLED == true) { logData(","+timestamp()+",X_AXIS_NAVIGATING_TO: "+DATA_INDEX.getXScrollIndex() +", NAVIGATION_SCROLL, EMERGE_SYSTEM"); } }
+function dataScrollX(pos) {	DATA_INDEX.setXScrollIndex(pos); if(LOGGING_ENABLED == true) { logData(","+timestamp()+",X_AXIS SCROLLING TO: "+DATA_INDEX.getXScrollIndex() +", NAVIGATION_SCROLL, ACTION_DETAILS"); } }
 /** Increment/decrement Y axis index. */
-function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); if(LOGGING_ENABLED == true) { logData(","+timestamp()+",Y_AXIS_NAVIGATING_TO: "+DATA_INDEX.getYScrollIndex() +", NAVIGATION_SCROLL, EMERGE_SYSTEM"); } }
+function dataScrollY(pos) {	DATA_INDEX.setYScrollIndex(pos); if(LOGGING_ENABLED == true) { logData(","+timestamp()+",Y_AXIS SCROLLING TO: "+DATA_INDEX.getYScrollIndex() +", NAVIGATION_SCROLL, ACTION_DETAILS"); } }
 /* End Data Navigation Functions */
 
 /* Data Organization functions */
@@ -1158,16 +1185,28 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 
 		rc1 = currentWindow[0][rc1_orig].col_id;
 		rc1_o = currentWindow[0][rc1_orig].original_col_id;
-		rc2 = currentWindow[0][rc2_orig].col_id
-		rc2_o = currentWindow[0][rc2_orig].original_col_id
+		rc2 = currentWindow[0][rc2_orig].col_id;
+		rc2_o = currentWindow[0][rc2_orig].original_col_id;
+		
+		var coltext1 = currentWindow[0][rc1_orig].col_text;
+		var coltext2 = currentWindow[0][rc2_orig].col_text;
+		
+		var lockedRows = LockedData.getLockedRows();
+		if(lockedRows.length == 0) {
+			if(LOGGING_ENABLED == true) {
+				logData(","+timestamp()+",SWAPPING COLUMNS : "+ coltext1 + " with " + coltext2 +", ORGANIZATION, ACTION_DETAILS");
+			}
 
-		for (var row = 0; row < DataSetObject.TotalMaxRows(); ++row) {
-			data[row][rc2].original_col_id = rc1_o;
-			data[row][rc2].col_id = rc1;
-			data[row][rc1].original_col_id = rc2_o;
-			data[row][rc1].col_id = rc2;
+			for (var row = 0; row < DataSetObject.TotalMaxRows(); ++row) {
+				data[row][rc2].original_col_id = rc1_o;
+				data[row][rc2].col_id = rc1;
+				data[row][rc1].original_col_id = rc2_o;
+				data[row][rc1].col_id = rc2;
+			}
+			data = swapInner(data, rc1, rc2);
 		}
-		data = swapInner(data, rc1, rc2);
+		
+		
 	}
 	// Update rows and dataset
 	if(axis == "ROW") {
@@ -1181,15 +1220,29 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		rc2 = currentWindow[rc2_orig][0].row_id;
 		rc2_o = currentWindow[rc2_orig][0].original_row_id;
 		
-		for (var col = 0; col < DataSetObject.TotalMaxColumns()-1; ++col) {
-			data[rc2][col].original_row_id = rc1_o;
-			data[rc2][col].row_id = rc1;
-			data[rc1][col].original_row_id = rc2_o;
-			data[rc1][col].row_id = rc2;
-		}
-		rows = swap(rows, rc1, rc2);
-		data = swap(data, rc1, rc2);
-		DataSetObject.setAllRowValues(rows);
+		
+		
+		var rowtext1 = currentWindow[0][rc1_orig].row_text;
+		var rowtext2 = currentWindow[0][rc2_orig].row_text;
+		
+		var lockedColumns = LockedData.getLockedColumns();
+		
+		if(lockedColumns.length == 0) {
+			if(LOGGING_ENABLED == true) {
+				logData(","+timestamp()+",SWAPPING ROWS : "+ rowtext1 + " with " + rowtext2 +", ORGANIZATION, ACTION_DETAILS");
+			}
+			
+			for (var col = 0; col < DataSetObject.TotalMaxColumns()-1; ++col) {
+				data[rc2][col].original_row_id = rc1_o;
+				data[rc2][col].row_id = rc1;
+				data[rc1][col].original_row_id = rc2_o;
+				data[rc1][col].row_id = rc2;
+			}
+			rows = swap(rows, rc1, rc2);
+			data = swap(data, rc1, rc2);
+			DataSetObject.setAllRowValues(rows);
+			
+		}	
 	}
 	// This should be updating the entire dataset (kept separate from datawindow)
 	DataSetObject.setAllDataVals(data); 
@@ -1211,25 +1264,31 @@ function annotateDataPoint(row, col) {
 	var actual_x = row;
 	var actual_y = col;
 	
-	if(mywindow[actual_x][actual_y].locked == false) {
+	//if(mywindow[actual_x][actual_y].locked == false) {
 		if(mywindow[actual_x][actual_y].annotated == false && mywindow[actual_x][actual_y].filtered == false) {
 			mywindow[actual_x][actual_y].annotated = true;
+			var rowtext = mywindow[actual_x][actual_y].row_text;
+			var coltext = mywindow[actual_x][actual_y].col_text;
 			DataHistory.add();
-			logData(","+timestamp()+",ANNOTATIE_BAR, ANNOTATION, EMERGE_SYSTEM");
+			logData(","+timestamp()+",ANNOTATING ROW: " + rowtext + " COLUMN: " + coltext + ", ANNOTATION, ACTION_DETAILS");
 		}
 		else if(mywindow[actual_x][actual_y].annotated == true && mywindow[actual_x][actual_y].filtered == false) {
 			mywindow[actual_x][actual_y].annotated = false;
+			var rowtext = mywindow[actual_x][actual_y].row_text;
+			var coltext = mywindow[actual_x][actual_y].col_text;
 			DataHistory.add();
-			logData(","+timestamp()+",REMOVE_ANNOTATED, ANNOTATION, EMERGE_SYSTEM");
+			logData(","+timestamp()+",REMOVING_ANNOTATION FROM ROW: " + rowtext + " COLUMN: " + coltext + ", ANNOTATION, ACTION_DETAILS");
 		}
 		else if(mywindow[actual_x][actual_y].filtered == true && mywindow[actual_x][actual_y].annotated == false) {
 			mywindow[actual_x][actual_y].filtered = false;
+			var rowtext = mywindow[actual_x][actual_y].row_text;
+			var coltext = mywindow[actual_x][actual_y].col_text;
 			DataHistory.add();
-			logData(","+timestamp()+",REMOVE_FILTERED, FILTERING, EMERGE_SYSTEM");
+			logData(","+timestamp()+",REMOVING_FILTER FROM ROW: " + rowtext + " COLUMN: " + coltext + ", FILTERING, ACTION_DETAILS");
 		}
 		
 		DataSetObject.setAllDataVals(data);
-	}
+	//}
 }
 /* End Data Annotation Functions */
 
@@ -1271,9 +1330,12 @@ function filterSingleDataPoint() {
 		if(mywindow[actual_x][actual_y].locked == false) {
 			mywindow[actual_x][actual_y].filtered = true;
 			mywindow[actual_x][actual_y].annotated = false;
+			var coltext = mywindow[actual_x][actual_y].col_text;
+			var rowtext =  mywindow[actual_x][actual_y].row_text;
+			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",FILTERING ROW: " + rowtext  + " COLUMN " + coltext +", FILTERING, ACTION_DETAILS"); }
 		}
 	}
-	if(LOGGING_ENABLED == true) { logData(","+timestamp()+",FILTER_SINGLE_VALUE, FILTERING, EMERGE_SYSTEM"); }
+	
 	DataSetObject.setAllDataVals(data);
 	DataHistory.add();
 	filterCoordinates = Array();
@@ -1296,8 +1358,11 @@ function filterCompare(mode, grp1, grp2, param1, param2) {
 		var actualcol_1 = grp1;
 		var actualcol_2 = grp2;
 		
+		var coltext1 = mywindow[param1][grp1].col_text;
+		var coltext2 = mywindow[param2][grp2].col_text;
+		
 		console.log("Comparing columns " + actualcol_1 + " and " + actualcol_2);
-		if( mywindow[param1][grp1].locked == false && mywindow[param2][grp2].locked == false) {
+		//if( mywindow[param1][grp1].locked == false && mywindow[param2][grp2].locked == false) {
 			// Get number of columns locked and subtract that from the total numcols + xindex
 			// or just replace data with datawindow
 			for(var i=0; i<mywindow.length; i++) {
@@ -1307,8 +1372,8 @@ function filterCompare(mode, grp1, grp2, param1, param2) {
 					}
 				}
 			}
-			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_COLUMNS, FILTERING, EMERGE_SYSTEM"); }
-		}
+			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARING COLUMNS "+ coltext1 +" AND "+ coltext2 +", FILTERING, ACTION_DETAILS"); }
+		//}
 	} else if(mode == "COMPARE_ROW") {
 		// Rows according to normal orientation.
 		console.log("Comparing rows");
@@ -1322,8 +1387,11 @@ function filterCompare(mode, grp1, grp2, param1, param2) {
 		var actualrow_1 = grp1;
 		var actualrow_2 = grp2;
 		
+		var rowtext1 = mywindow[grp1][param1].row_text;
+		var rowtext2 = mywindow[grp2][param2].row_text;
+		
 		console.log("Comparing rows " + actualrow_1 + " and " + actualrow_2);
-		if( mywindow[grp1][param1].locked == false && mywindow[grp2][param2].locked == false) {
+		//if( mywindow[grp1][param1].locked == false && mywindow[grp2][param2].locked == false) {
 			for(var i=0; i<mywindow.length; i++) {
 				for(var j=0; j<mywindow[i].length; j++) {
 					if(i != actualrow_1 && i != actualrow_2 && mywindow[i][j].locked == false) {
@@ -1331,8 +1399,8 @@ function filterCompare(mode, grp1, grp2, param1, param2) {
 					}
 				}
 			}
-			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARE_ROWS, FILTERING, EMERGE_SYSTEM"); }
-		}
+			if(LOGGING_ENABLED == true) { logData(","+timestamp()+",COMPARING ROWS "+ rowtext1 +" AND "+ rowtext2 +", FILTERING, ACTION_DETAILS"); }
+		//}
 	}
 	DataHistory.add();
 	DataSetObject.setAllDataVals(data);
@@ -1441,7 +1509,7 @@ function readMetaData_XML(file) {
 /* General Functions */
 /** Function to append to file for logging purposes - i.e. for the collaboration user study. */
 function logData(data) {
-	data = ","+_CONDITION+data + "\r\n";
+	data = ","+_CONDITION+data+","+ JSON.stringify(DataSetObject.getColumnLabelWindowCSV()) + "," + JSON.stringify(DataSetObject.getRowLabelWindowCSV()) + "\r\n";
 	//TO DO: check if file exists, if not, create file, then append
 	fs.appendFile('logs/'+_LOG_FILENAME+".txt", data, function (err) {
 		if(err) { return console.log("Could not write to file \r\n" + err); }
