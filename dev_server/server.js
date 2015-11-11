@@ -10,16 +10,15 @@
 
 /*
 *
-* TO DO;
 *
 * NOTE: In C#, dataobject accessed using following example syntax - parsedData["data"][x][y]["val"];
 *
 */
 
 
-var LOGGING_ENABLED	= true;
+var LOGGING_ENABLED	= false;
 
-var _PNUM = 17;
+var _PNUM = 1111;
 
 
 //var _CONDITION="DEMO"; var _CSVFILE = "Rainfall-v2.csv"; var _XMLCOLOURSFILE = "Rainfall-v2.metadata";
@@ -27,9 +26,6 @@ var _PNUM = 17;
 //var _CONDITION="TRAINING"; var _CSVFILE = "appropriateness.csv"; var _XMLCOLOURSFILE = "appropriateness.metadata";
 
 var _CONDITION="EXPLORATION"; var _CSVFILE = "EU_Values3.csv";  var _XMLCOLOURSFILE = "EU_Values3.metadata";
-
-
-//var _CONDITION="PRESENTATION";
 
 var _LOG_FILENAME = "Participant_"+_PNUM+"_"+_CONDITION;
 
@@ -52,7 +48,7 @@ var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
-var _ANIMATION_TIME		= 200;
+var _ANIMATION_TIME		= 700;
 
 // Variables for filtering
 var PRESS_COMPARE_COUNTER 			= 0;
@@ -532,6 +528,7 @@ function DataHistory() {
 				"";
 		}
 	}
+	// Display a snapshot
 	this.showSnapshot=function(param) {
 		switch(param) {
 			case 1:
@@ -570,6 +567,7 @@ function DataHistory() {
 				"";
 		}
 	}
+	// Remove a snapshot
 	this.removeSnapshot=function(param) {
 		// Remove specified snapshot and set the data to ...?
 		switch(param) {
@@ -828,6 +826,7 @@ function LockedData() {
 	}
 }
 
+// Some generic functions.
 var CHECK_FALSE = function(val) {
     if(val != this.myval) {
         return true;
@@ -848,7 +847,7 @@ function printOnce(v) {
 }
 
 
-/** Create a dataset object so that we can easily extract properties, like row,column names, specific portions of data, etc. */
+/** Create a dataset object so that we can easily set and extract properties, like row,column names, specific portions of data, etc. */
 function DataSetObject(csvfile, xmlfile) {	
 	// Each data value as an object with properties.
 	var dataValObject = function(id, val, x, y) {
@@ -911,9 +910,9 @@ function DataSetObject(csvfile, xmlfile) {
 	for(var col=1;col<maxcols; col++) {	colmap.push(col-1); }
 	
 	var max = allData.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
-	console.log("Maximum val is: " + max);
+	//console.log("Maximum val is: " + max);
 	var min = allData.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);	
-	console.log("Minimum val is: " + min);
+	//console.log("Minimum val is: " + min);
 	
 	// Get the data values, specific to a given grid size, and based on x and y index (if user has been scrolling)
 	this.getDataWindow = function() {
@@ -941,21 +940,7 @@ function DataSetObject(csvfile, xmlfile) {
 					data_row.push(data[row][col]);
 				}
 			}
-			LockedData.setLastLockedDataWindow(datawindow);
-			
-			/*var tempwin = [];
-			for(var i=0; i<datawindow.length; i++) {
-				var t=[];
-				tempwin.push(t);
-				for(var j=0; j<datawindow[i].length; j++) {
-					t.push(datawindow[i][j].val);
-				}
-			}
-			max = tempwin.reduce(function(max, arr) { return Math.max(max, arr[0]); }, -Infinity);
-			min = tempwin.reduce(function(min, arr) { return Math.min(min, arr[0]); },  Infinity);
-			console.log("Maximum val is: " + max);
-			console.log("Minimum val is: " + min);	*/		
-			
+			LockedData.setLastLockedDataWindow(datawindow);	
 			return datawindow;
 		}
 		else if(lockedColNum > 0 && lockedRowNum == 0) { /* ************ If only columns are locked ***************** */
@@ -1168,9 +1153,6 @@ function swapCol(c1, c2) {
 function swapRow(r1, r2) {
 	// Bail if nothing to do.
 	if (r1 == r2) return;
-	var colorset = DataSetObject.getColors();
-	swap(colorset, r1, r2);
-	DataSetObject.setColors(colorset);
 	updateGlobalDataSet("ROW", r1, r2);
 }
 /** Update all columns, rows and data of the entire dataset. */
@@ -1220,8 +1202,6 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		rc2 = currentWindow[rc2_orig][0].row_id;
 		rc2_o = currentWindow[rc2_orig][0].original_row_id;
 		
-		
-		
 		var rowtext1 = currentWindow[0][rc1_orig].row_text;
 		var rowtext2 = currentWindow[0][rc2_orig].row_text;
 		
@@ -1230,8 +1210,7 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 		if(lockedColumns.length == 0) {
 			if(LOGGING_ENABLED == true) {
 				logData(","+timestamp()+",SWAPPING ROWS : "+ rowtext1 + " with " + rowtext2 +", ORGANIZATION, ACTION_DETAILS");
-			}
-			
+			}		
 			for (var col = 0; col < DataSetObject.TotalMaxColumns()-1; ++col) {
 				data[rc2][col].original_row_id = rc1_o;
 				data[rc2][col].row_id = rc1;
@@ -1240,8 +1219,10 @@ function updateGlobalDataSet(axis, rc1, rc2) {
 			}
 			rows = swap(rows, rc1, rc2);
 			data = swap(data, rc1, rc2);
+			var colorset = DataSetObject.getColors();
+			swap(colorset, rc1, rc2);
+			DataSetObject.setColors(colorset);
 			DataSetObject.setAllRowValues(rows);
-			
 		}	
 	}
 	// This should be updating the entire dataset (kept separate from datawindow)
@@ -1286,7 +1267,6 @@ function annotateDataPoint(row, col) {
 			DataHistory.add();
 			logData(","+timestamp()+",REMOVING_FILTER FROM ROW: " + rowtext + " COLUMN: " + coltext + ", FILTERING, ACTION_DETAILS");
 		}
-		
 		DataSetObject.setAllDataVals(data);
 	//}
 }
@@ -1414,6 +1394,7 @@ function beginCompareTimer() {
 	if(PRESS_COMPARE_COUNTER == 2 && (COMPARE_TIME_2 - COMPARE_TIME_1) < FILTER_COMPARISON_INTERVAL) {
 		// If two datapoints are selected, and are along the edges of the graph, then compare those two rows or columns.
 		// TO DO - need to make below more efficient, MASSIVE IF STATEMENTS!!! ARGH!
+		// The giant 'if' statements handle cases where bars on the edges are pressed.
 		if(filterCoordinates.length > 1) {
 			if((filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 1) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 1) ||
 			(filterCoordinates[0][0] == 0 && filterCoordinates[1][0] == 0 && filterCoordinates[1][1] == 8) || (filterCoordinates[1][0] == 0 && filterCoordinates[0][0] == 0 && filterCoordinates[0][1] == 8) || 

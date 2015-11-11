@@ -27,3 +27,6 @@ var DEBUG_MODE = false;
 
 // Logging (for collaboration user study)
 var LOGGING_ENABLED = true;
+
+// Scrollbar scrolling speed
+var SCROLL_SPEED = 120;
