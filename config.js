@@ -29,4 +29,4 @@ var DEBUG_MODE = false;
 var LOGGING_ENABLED = true;
 
 // Scrollbar scrolling speed
-var SCROLL_SPEED = 120;
+var SCROLL_SPEED = 200;
