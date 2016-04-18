@@ -1,18 +1,17 @@
+/*
+* EMERGE Application script contains the front-end controls for manipulating the system.
+*/
+
+
 /* 
  * Simple Javascript Inheritance.
  * @author John Resig (http://ejohn.org/)
  * @license MIT Licensed
  * http://ejohn.org/blog/simple-javascript-inheritance/
  */
- 
- /*
- * TO DO / COMPLETE:
- * - Add a *widget* function, which does things like undo, redo, reset, etc.
- * - Rather than having lowerpanel and leftpanel interfaces - change this to X_Interface(POSITION), Y_Interface(POSITION) where position is left/right, top/bottom.
- * - Need to reverse the X interface and Y interface on displays where users are viewing the graph 'upside down' i.e. from the other side of the normal orientation.
- */
- 
+  
 (function(){var e=false,t=/xyz/.test(function(){xyz})?/\b_super\b/:/.*/;this.Class=function(){};Class.extend=function(n){function o(){if(!e&&this.init)this.init.apply(this,arguments)}var r=this.prototype;e=true;var i=new this;e=false;for(var s in n){i[s]=typeof n[s]=="function"&&typeof r[s]=="function"&&t.test(n[s])?function(e,t){return function(){var n=this._super;this._super=r[e];var i=t.apply(this,arguments);this._super=n;return i}}(s,n[s]):n[s]}o.prototype=i;o.prototype.constructor=o;o.extend=arguments.callee;return o}})()
+
 	
 var comms 				= null;
 var commsReady 			= false;
@@ -137,7 +136,9 @@ var EmergeInterface = Class.extend({
 			$('div.snapshot_box_left').append('<div class="snapshots"><input type="image" onclick="" id="snapshot_1" class="empty" src="images/camera.png"></input></div><div class="snapshots"><input type="image" onclick="" id="snapshot_2" class="empty" src="images/camera.png"></input></div><div style="clear:both"></div>');
 			
 			$('div.snapshot_box_right').append('<div class="snapshots"><input type="image" onclick="" id="snapshot_3" class="empty" src="images/camera.png"></input></div><div class="snapshots"><input type="image" onclick="" id="snapshot_4" class="empty" src="images/camera.png"></input></div><div style="clear:both"></div>');
-			
+			/*
+			* TODO: Below is an awful way of achieving snapshot clicking, needs to be more efficient, but works for now.
+			*/
 			$('input#snapshot_1').on('click', function() {
 				if($(this).hasClass('empty')) {
 					var that = this;

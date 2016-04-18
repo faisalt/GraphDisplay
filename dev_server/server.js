@@ -2,7 +2,10 @@
 * Central application server for the EMERGE system.
 * Handles communication between various clients, e.g. interface panels and the EMERGE application.
 * Updates dataset, informs about interactions, stores state variables.
-*
+* BUGS:
+* 1. When rows are swapped along the Y-axis, colours are meant to swap, this normally works but it's buggy when
+* some rows are locked - i.e. the colours don't swap properly.
+* 2. When rows along one axis are locked, you can't swap in the other, but the labels change even though they're not meant to
 * @author Faisal T.
 * Created 29-05-2015.
 */
@@ -48,7 +51,7 @@ var _DATAINITIALIZED	= false;
 var _CLIENTCOUNTER 		= 0;
 var _X_SCROLLINDEX		= 0;
 var _Y_SCROLLINDEX		= 0;
-var _ANIMATION_TIME		= 700;
+var _ANIMATION_TIME		= 300;
 
 // Variables for filtering
 var PRESS_COMPARE_COUNTER 			= 0;
