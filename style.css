@@ -1,0 +1,357 @@
+body {
+	background-color:black;
+	color:white;
+	font-family: segoe ui;
+	overflow:hidden;
+}
+
+.title {
+	font-size:1.5em;
+	padding:10px;
+}
+
+div#leftfunctions {
+	width: 20%;
+	float: right;
+	height: 95%;
+	position: relative;
+	display: inline-block;
+}
+
+input#refresh {
+	right: 1%;
+	height: 55px;
+	width: 55px;
+	display: inline-block;
+	float: right;
+	position: relative;
+	top: 1px;
+	border: 1px solid lightgray;
+	padding: 20px;
+}
+
+#datainfo {
+	/*margin-bottom:20px;
+	text-align:center;*/
+}
+
+span.title {
+	font-weight: bold;
+}
+
+/************************************************/
+/*************** Panel styling ************/
+/************************************************/
+
+.axis_label_lower, .axis_label_left {
+	padding:20px;
+	display:inline-block;
+	width:80%;
+	border:1px solid lightgray;
+	margin-bottom:5px;
+	float:right;
+	text-align:right;
+	font-size:1.5em;
+	/*background-color:#FFFFC8;*/
+	background-color:white;
+	z-index:2;
+	color:black;
+	/*Change below for display size and resolution*/
+	height:50px;
+	margin-bottom:38px;
+
+}
+
+
+.axis_label.drag-active_y, .axis_label.drag-active_x {
+	background-color:#C1FDB6;
+}
+
+.drop-target_y, .drop-target_x {
+	background-color:#C1FDB6;
+}
+
+.drag-active_y, .drag-active_x {
+	z-index:10;
+	position:relative;
+	display:inline-block;
+}
+
+.dropzone_y, .dropzone_x {
+	position:relative;
+	width: 100%;
+	height: 5%;
+	top: 20px;
+	z-index:-1;
+}
+
+div#loweraxis, div#leftaxis {
+	float:left;
+	width:100%;
+	height:50%;
+	position:relative;
+}
+/*
+.spantext {
+	transform:rotate(-90deg);
+	display:inline-block;
+	padding:10px;
+	position:relative;
+	right:20px;
+}*/
+
+.spantext {
+	transform: rotate(-90deg);
+    display: inline-block;
+    padding: 10px;
+    position: relative;
+    right: 98px;
+    font-size: 18px;
+    text-align: right;
+    top: 83px;
+    width: 200px;	
+	
+}
+.spantext_y {
+	transform: rotate(-90deg);
+	display: block;
+	position: relative;
+	width: 200px;
+	left: -88px;
+	top: 80px;
+	text-align: right;
+}
+
+.control.axislabel.x, .control.axislabel.y {
+	float:left;
+	width:50px;
+	margin-right:79px;
+	height:100%;
+	position:relative;
+}
+.text.axis_label_lower, .text.axis_label_left {
+	float:left;
+	width:40px;
+	height:90%;
+	position:relative;
+}
+
+.axis_label_lower, .axis_label_left {
+	float:left;
+	width:30%;
+	height:100%;
+	position:relative;
+}
+.dropzone_x, .dropzone_y {
+	/*float:left;*/
+	width:100%;
+	height:100%;
+	position:relative;
+	z-index:-1;
+	/*left:-40px;*/
+	left:15px;
+}
+
+/********** End panel styling ************/
+
+
+/************************************************/
+/********* Navigation scrollbar styling *********/
+/************************************************/
+
+#hscroll.scroll_x, #vscroll.scroll_y{ 
+	position:fixed;  
+	border: 2px solid white; 
+	bottom: 1%; 
+	width: 80%;
+	left:10%;
+	margin:0 auto;
+	height: 10%; 
+	background-color: rgb(52, 52, 52); 
+}
+
+#hscroll.scroll_x .nub_x, #vscroll.scroll_y .nub_y	{ 
+	position: absolute; 
+	display: block; 
+	background-color: white; 
+	width: 8%; 
+	height: 97%; 
+	outline:none;
+	border-color:white;
+	box-shadow: 0 0 15px white;
+	margin-left:1px;
+	margin-top:1px;
+}
+
+#hscroll.scroll_x .ghost_x, #vscroll.scroll_y .ghost_y{ 
+	position: absolute; 
+	display: block; 
+	border: 1px solid gray; 
+	background-color: rgba(255, 255, 255, 0.4);
+	width: 8%; 
+	height: 97%;
+	outline:none;
+	border-color:gray;
+	box-shadow: 0 0 15px gray;
+}
+
+#leftarrow , #uparrow{
+	position:absolute;
+	width:8%;
+}
+#rightarrow , #downarrow{
+	position:absolute;
+	width:8%;
+}
+
+#uparrow:active, #downarrow:active {}
+
+/****** End navigation scrollbar styling ********/
+
+/*********** Widget stuff ***********************/
+
+div.widgets { float:left; position:relative;}
+div.widget_box {
+	float:left;
+	position:relative;
+	display:inline-block;
+	left: 5%;
+	top:100px;
+	padding-top:20px;
+	padding-bottom:20px;
+	padding-left:50px;
+	padding-right:50px;
+	background:black;
+	border:2px solid white;
+	border-radius:20px;
+}
+input#undo_widget {
+	float: left;
+	position: relative;
+	width:100px;
+	margin-top:10px;
+}
+input#redo_widget {
+	float: left;
+	position: relative;
+	margin-left:50px;
+	width:100px;
+	margin-top:10px;
+}
+input#reload_widget {
+	float: left;
+	position: relative;
+	margin-left:60px;
+	width:75px;
+}
+
+/* Snapshotting */
+div.snapshot_box_left {
+	float:left;
+	position:relative;
+	display:inline-block;
+	left: 1%;
+	top:100px;
+	padding-top:15px;
+	padding-bottom:15px;
+	padding-left:50px;
+	padding-right:50px;
+	background:black;
+	/*border:2px solid white;*/
+	border-radius:20px;
+}
+
+div.snapshot_box_right {
+	float:right;
+	position:relative;
+	display:inline-block;
+	right: 1%;
+	top:100px;
+	padding-top:15px;
+	padding-bottom:15px;
+	padding-left:50px;
+	padding-right:50px;
+	background:black;
+	/*border:2px solid white;*/
+	border-radius:20px;
+}
+
+div.snapshots {
+	padding:20px;
+	border:1px solid lightgray;
+	border-radius:20px;
+	float:left;
+	margin-left:10px;
+}
+
+img.cancel_snapshot_1 {
+	width:65px;
+	position:absolute;
+	left:15%;
+}
+
+img.cancel_snapshot_2 {
+	width:65px;
+	position:absolute;
+	left:50%;
+}
+
+img.cancel_snapshot_4 {
+	width:65px;
+	position:absolute;
+	right:15%;
+}
+
+img.cancel_snapshot_3 {
+	width:65px;
+	position:absolute;
+	right:50%;
+}
+
+/*********** End widget stuff ******************/
+
+/*********   Locking stuff    ******************/
+
+.locked {
+	background-color:#FF4A4A;
+}
+
+img.unlocked, img.label_locked {
+	width: 55px;
+    position: relative;
+    display: inline-block;
+    bottom: 27px;
+    left: 15px;
+	opacity:0.7;
+}
+
+/*********   End locking stuff    *************/
+
+.logbutton {
+	-moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+	-webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+	box-shadow:inset 0px 1px 0px 0px #ffffff;
+	background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ededed), color-stop(1, #dfdfdf));
+	background:-moz-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+	background:-webkit-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+	background:-o-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+	background:-ms-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+	background:linear-gradient(to bottom, #ededed 5%, #dfdfdf 100%);
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#dfdfdf',GradientType=0);
+	background-color:#ededed;
+	-moz-border-radius:6px;
+	-webkit-border-radius:6px;
+	border-radius:6px;
+	border:1px solid #dcdcdc;
+	display:inline-block;
+	cursor:pointer;
+	color:#777777;
+	font-family:Arial;
+	font-size:15px;
+	font-weight:bold;
+	padding:6px 24px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #ffffff;
+	margin:10px;
+	width:200px;
+}

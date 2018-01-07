@@ -1,0 +1,54 @@
+<html>
+	<head>
+		<title>EMERGE display - left</title>
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<script type="text/javascript" src="js/jquery-1.8.2.js"></script>
+		<script type="text/javascript" src="js/jquery-ui-1.9.1.custom.min.js"></script>
+		<script type="text/javascript" src="config.js"></script>	
+		<script type="text/javascript" src="js/interactjs.js"></script>	
+		<script type="text/javascript" src="js/reconnecting-websocket.js"></script>	
+		<script type="text/javascript" src="js/EmergeApplication.js"></script>	
+	</head>
+	
+	<body>
+		<div id="leftaxis"></div>
+		<div id="leftpanel_widgets"></div>
+		<div class="snapshot_box_left"></div>
+		<div class="widget_box"></div>
+		<div class="snapshot_box_right"></div>
+		<div class="snapshot_action_box_left"></div>
+		<div id="leftnavigationfunctions"></div>
+	</body>
+
+</html>
+
+<script type="text/javascript">
+
+$(document).ready(function() {
+	//Connect to web socket port
+	console.log("Connecting to port");
+	initComms("Y_AXIS_PANEL_R", WS_PORT, function(){ 
+		var leftpanel = new Y_AxisInterface(function() {
+			// Generate the column labels and specify whether they can be draggable/reorganized
+			leftpanel.generateRowLabels({ 
+				draggableLabels:true ,
+				reverse:true
+			});
+			// Add scrollbar for navigating through the dataset
+			leftpanel.addScrollbarNavigation({
+				scroll_speed:SCROLL_SPEED,
+				reverse:true
+			});
+			leftpanel.widgets({
+				reload:true,
+				undo:true,
+				redo:true,
+				snapshot:true
+			});
+		});
+		
+	});
+});
+
+
+</script>
